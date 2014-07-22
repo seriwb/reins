@@ -1,0 +1,41 @@
+apply plugin: 'groovy'
+//apply plugin: 'eclipse'
+//apply plugin: 'application'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+version = '0.1'
+jar {
+	manifest {
+		attributes 'Implementation-Title': 'reins', 'Implementation-Version': version
+	}
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		url "http://repository.codehaus.org"
+		url "http://snapshots.repository.codehaus.org"
+	}
+}
+
+dependencies {
+	compile 'org.codehaus.groovy:groovy-all:2.3.3'
+	compile 'org.twitter4j:twitter4j-core:[4.0,)'
+//	compile 'org.codehaus.groovy.modules.http-builder:http-builder:[0.7,)'
+	runtime 'com.h2database:h2:1.4.180'
+	testCompile 'org.spockframework:spock-maven:0.7-groovy-2.0'
+//	testCompile 'junit:junit:4.11'
+}
+
+def defaultEncoding = 'UTF-8'
+tasks.withType(AbstractCompile) each { it.options.encoding = defaultEncoding }
+tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding }
+
+//uploadArchives {
+//	repositories {
+//		flatDir { dirs 'repos' }
+//	}
+//}
+
+
+mainClassName = 'white.box.reins.Main'
