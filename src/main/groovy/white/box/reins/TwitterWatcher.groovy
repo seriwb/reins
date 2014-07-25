@@ -38,7 +38,8 @@ class TwitterWatcher extends Thread {
 
 		// リストごとにスリープ、リスト終わって長めのスリープ
 		boolean loop = true
-		while(loop) {
+		int counter = 0
+		while(loop && counter++ < 4) {
 
 			// 認証ユーザが持つリストを取得
 			ResponseList<UserList> lists = twitter.getUserLists(userinfo.getScreenName())
@@ -102,7 +103,7 @@ class TwitterWatcher extends Thread {
 			Thread.sleep(3000)
 
 			// TODO:エンド処理
-			//			loop = false
+//			loop = false
 		}
 	}
 
