@@ -11,6 +11,12 @@ public abstract class WebUtil {
 		}
 	}
 
+	public static String getTwitterUrl(String screenName, String statusId) {
+		"https://twitter.com/${screenName}/status/${statusId}"
+	}
+
+
+
 	//	public String expandQueryURL(String urlStr, String queryStr) {
 	//		HttpURLClient http = new HttpURLClient(followRedirects:false)
 	//
