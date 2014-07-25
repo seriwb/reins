@@ -8,16 +8,20 @@ class Main {
 
 		def config = new BootStrap().init()
 
-		TwitterWatcher tw = new TwitterWatcher(config)
+//		new BootStrap().destroy(config)
+
+		final TwitterWatcher tw = new TwitterWatcher(config)
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run () {
+				tw.stopRunning()
+			}
+		});
 
 		try {
 			tw.start()
 		} catch (e) {
-			println "exception"
-		} finally {
-
-			Sql db = Sql.newInstance(config.jdbcMap)
-			db.close()
+			println e
 		}
 	}
 }
