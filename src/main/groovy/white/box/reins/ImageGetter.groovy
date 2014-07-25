@@ -30,11 +30,10 @@ class ImageGetter extends Thread {
 	@Override
 	public void run() {
 
-		db.execute("""create table Hoge(id integer not null primary key)""")
-		db.execute("""drop table Hoge""")
-		db.close()
-
 		// TODO:ディレクトリを作る処理はループの最初だけで呼ぶようにする
+		// TODO:リストでフォルダを作成する（やるのは画像取得ロジック
+		// TODO:画像があればユーザーでフォルダを作成する。
+
 
 	}
 
