@@ -7,6 +7,7 @@ import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
+import twitter4j.User
 import twitter4j.UserList;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
@@ -14,6 +15,11 @@ import white.box.reins.dao.ListDataDao
 import white.box.reins.dao.ListMstDao
 import white.box.reins.model.ListData
 
+/**
+ * Twitterアカウントのリストから定期的に画像のURLを取得する。<br>
+ *
+ * @author seri
+ */
 class TwitterWatcher extends Thread {
 
 	def config = null
@@ -24,6 +30,10 @@ class TwitterWatcher extends Thread {
 		this.config = config
 	}
 
+	/**
+	 * スレッド停止用メソッド<br>
+	 * スレッド作成元のスレッドで呼ぶように作ること。
+	 */
 	public void stopRunning(){
 		loop = false;
 	}
@@ -43,10 +53,11 @@ class TwitterWatcher extends Thread {
 		final int tweet_max_count = config.reins.tweet.maxcount
 
 		// リストごとにスリープ、リスト終わって長めのスリープ
-		int waittime = 1000		// TODO:外部読み込みに
+		int waittime = config.reins.loop.waittime
 
-		int counter = 0		// TODO:テスト用
-		while(loop && counter++ < 3) {
+//		int counter = 0		// TODO:テスト用
+//		while(loop && counter++ < 3) {
+		while(loop) {
 
 			// 認証ユーザが持つリストを取得
 			ResponseList<UserList> lists = twitter.getUserLists(userinfo.getScreenName())
@@ -77,9 +88,11 @@ class TwitterWatcher extends Thread {
 				if (currentSinceId != -1) {
 					paging.sinceId = currentSinceId
 					paging_max_count = 10
+				} else {
+					paging = new Paging(1, tweet_max_count)
 				}
 
-				println "current since_id:" + currentSinceId
+				println "$listname current since_id:" + currentSinceId
 
 				// 最大200×10ツイートの取得
 				for (int i=1; i <= paging_max_count; i++) {
@@ -94,6 +107,10 @@ class TwitterWatcher extends Thread {
 //					statuses.each { status ->
 
 						def screenName = status.getUser().getScreenName()
+						// RTの場合はRT元のユーザー名を格納する
+						if (status.getRetweetedStatus() != null) {
+							screenName = status.getRetweetedStatus().getUser().getScreenName()
+						}
 						// 共通的な値はあらかじめ入れる
 						ListData listdata = new ListData(
 										screenName : screenName,
@@ -106,6 +123,7 @@ class TwitterWatcher extends Thread {
 						mediaList.each {
 							listdata.url = it.getMediaURL()
 							listdata.attribute = "twitter"
+
 							listDataDao.insert(listId, listdata)
 						}
 						// ----------■公式以外のリンクを取得する場合はここに書く--------------

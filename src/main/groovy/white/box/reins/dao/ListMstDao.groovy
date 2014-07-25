@@ -2,6 +2,11 @@ package white.box.reins.dao
 
 import groovy.sql.Sql
 
+/**
+ * list_mstを操作するDAO
+ *
+ * @author seri
+ */
 class ListMstDao {
 
 	Sql db = null
@@ -32,6 +37,15 @@ create table list_mst(
 
 	def getSinceId(long listId) {
 		db.firstRow("""select sinceId from list_mst where listId = $listId""").get("sinceId")
+	}
+
+	/**
+	 * 全リスト情報の取得
+	 *
+	 * @return listIdとlistNameのrows
+	 */
+	def getListAll() {
+		db.rows("""select listId, listName from list_mst""")
 	}
 
 	def updateSinceId(long listId, long sinceId) {

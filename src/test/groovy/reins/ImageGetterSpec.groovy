@@ -8,9 +8,12 @@ class ImageGetterSpec extends Specification {
 	def 起動テスト() {
 
 		setup:
-		ImageGetter imageGetter = new ImageGetter()
+//		ImageGetter imageGetter = new ImageGetter()
 //		imageGetter.start()
 
-		imageGetter.mkdir("h2", "hoge2")
+//		imageGetter.mkdir("h2", "hoge2")
+
+		String[] strings = "http://pbs.twimg.com/media/BrJBmjsCEAAWwo-.jpg".split('\\.')
+		println strings[strings.length - 1]
 	}
 }

@@ -3,6 +3,11 @@ package white.box.reins.dao
 import groovy.sql.Sql;
 import white.box.reins.model.ListData
 
+/**
+ * list_<リストID>のテーブルを操作するDAO
+ *
+ * @author seri
+ */
 class ListDataDao {
 
 	Sql db = null
@@ -40,6 +45,33 @@ create table list_${listId} (
 	}
 
 	/**
+	 * ダウンロード画像データ取得
+	 *
+	 * @return
+	 */
+	def getImageInfo(long listId, String attribute, int max) {
+		db.rows("""
+select id, url, screenName, counterStatus, tweetDate
+ from list_$listId""".toString() + """
+ where (counterStatus between 0 and 10)
+ and attribute = '$attribute'
+ limit $max""")
+	}
+
+	/**
+	 * ダウンロード後のステータス更新
+	 *
+	 * @param listId
+	 * @param imageInfo
+	 * @return
+	 */
+	def updateStatus(long listId, Map imageInfo) {
+		db.execute(
+			"update list_$listId".toString() +
+			" set counterStatus = ${imageInfo.counterStatus} where id = ${imageInfo.id}")
+	}
+
+	/**
 	 * @param listId リストのID
 	 * @param id リストテーブルのID
 	 * @return データがあればtrueを返す
@@ -49,6 +81,7 @@ create table list_${listId} (
 	}
 
 	def delete() {
+		// TODO:later
 	}
 
 	def drop(long listId) {

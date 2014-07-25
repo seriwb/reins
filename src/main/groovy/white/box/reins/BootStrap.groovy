@@ -4,11 +4,16 @@ import groovy.sql.Sql
 import white.box.reins.dao.ListMstDao
 import white.box.reins.model.ListMst
 
+/**
+ * 初期化用クラス
+ *
+ * @author seri
+ */
 class BootStrap {
 
 	def init = { config ->
 		config = new ConfigSlurper().parse(
-						new File('./src/main/resources/Config.groovy').toURI().toURL())
+						new File('./conf/Config.groovy').toURI().toURL())
 
 		Map<String, Object> jdbcMap = [
 			url:'jdbc:h2:./db/h2.db',		// DB接続文字列（永続化）TODO:フォルダ指定
@@ -28,15 +33,14 @@ class BootStrap {
 			println "list_mst already exist."
 		}
 
-		//		ListMst[] insertListMstDatas = [
-		//			new ListMst()
-		//			]
-
 		db.close()
 
 		config
 	}
 
+	/**
+	 * 環境初期化用
+	 */
 	def destroy = { config ->
 
 		def db = Sql.newInstance(config.jdbcMap)

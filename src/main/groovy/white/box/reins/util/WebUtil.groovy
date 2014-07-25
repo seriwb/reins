@@ -1,7 +1,16 @@
 package white.box.reins.util
 
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel
+
 //import groovyx.net.http.HttpURLClient
 
+/**
+ * WEB操作系のユーティリティ
+ *
+ * @author seri
+ *
+ */
 public abstract class WebUtil {
 
 	public static String getURL(String text) {
@@ -29,4 +38,17 @@ public abstract class WebUtil {
 	//	  }
 
 
+	/**
+	 * WEBから画像をダウンロードする。
+	 *
+	 * @param url 画像URL
+	 * @param filepath 画像保存先ファイル
+	 */
+	public static void download(String url, File filepath) {
+		URL website = new URL(url);
+		ReadableByteChannel rbc = Channels.newChannel(website.openStream())
+		FileOutputStream fos = new FileOutputStream(filepath)
+		fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE)
+		fos.close()
+	}
 }

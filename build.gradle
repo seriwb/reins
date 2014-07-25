@@ -4,15 +4,6 @@ apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 version = '0.1'
-jar {
-	manifest {
-		attributes (
-			'Implementation-Title': 'reins',
-			'Implementation-Version': version,
-			'Main-class' : 'white.box.reins.Main'
-		)
-	}
-}
 
 repositories {
 	mavenCentral()
@@ -42,5 +33,15 @@ tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding
 //	}
 //}
 
+jar {
+	from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+	manifest {
+		attributes (
+			'Implementation-Title': 'reins',
+			'Implementation-Version': version,
+			'Main-Class' : 'white.box.reins.Main'
+		)
+	}
+}
 
 mainClassName = 'white.box.reins.Main'

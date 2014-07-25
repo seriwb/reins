@@ -1,5 +1,7 @@
 package reins.dao
 
+import java.text.Format;
+
 import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
@@ -72,6 +74,9 @@ class ListDataDaoSpec extends Specification {
 		listData.statusId      == result.statusId
 		listData.tweetDate.format("yyyy-MM-dd HH:mm:ss.SSSZ") ==
 			result.tweetDate.format("yyyy-MM-dd HH:mm:ss.SSSZ")
+		listData.tweetDate != result.tweetDate	// メモ
+		listData.tweetDate.getDateString() == result.tweetDate.getDateString()
+		println result.tweetDate.format("yyyy-MM-dd HH:mm:ss.SSSZ")
 
 		cleanup:
 		dao.drop(listId)
