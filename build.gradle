@@ -6,7 +6,11 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 version = '0.1'
 jar {
 	manifest {
-		attributes 'Implementation-Title': 'reins', 'Implementation-Version': version
+		attributes (
+			'Implementation-Title': 'reins',
+			'Implementation-Version': version,
+			'Main-class' : 'white.box.reins.Main'
+		)
 	}
 }
 
@@ -23,7 +27,7 @@ dependencies {
 	compile 'org.twitter4j:twitter4j-core:[4.0,)'
 //	compile 'org.codehaus.groovy.modules.http-builder:http-builder:[0.7,)'
 //	compile 'org.hibernate:hibernate-gradle-plugin:4.3.6.Final'
-	runtime 'com.h2database:h2:1.4.180'
+	compile 'com.h2database:h2:1.4.180'
 	testCompile 'org.spockframework:spock-maven:0.7-groovy-2.0'
 //	testCompile 'junit:junit:4.11'
 }
@@ -31,6 +35,12 @@ dependencies {
 def defaultEncoding = 'UTF-8'
 tasks.withType(AbstractCompile) each { it.options.encoding = defaultEncoding }
 tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding }
+
+//uploadArchives {
+//	repositories {
+//		flatDir { dirs 'repos' }
+//	}
+//}
 
 
 mainClassName = 'white.box.reins.Main'
