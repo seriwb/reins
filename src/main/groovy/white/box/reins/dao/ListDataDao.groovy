@@ -16,11 +16,11 @@ class ListDataDao {
 		db.execute("""
 create table list_${listId} (
 		id bigint auto_increment not null primary key,
-		url varchar2(300),
+		url varchar2(300) unique,
 		screenName varchar2(50),
 		counterStatus integer,
 		attribute varchar2(10),
-		tweetUrl varchar2(300),
+		statusId bigint,
 		tweetDate datetime)""".toString())
 	}
 
@@ -29,9 +29,14 @@ create table list_${listId} (
 		String tablename = "list_${listId}"
 		def listSet = db.dataSet(tablename)
 
-		listSet.add(listData.getProperties().findAll {
-			!(it.key in ['id', 'class'])
-		})
+		try {
+			listSet.add(listData.getProperties().findAll {
+				!(it.key in ['id', 'class'])
+			})
+		} catch (e) {
+			println e
+			println "一意制約なので特に何もしない"
+		}
 	}
 
 	/**

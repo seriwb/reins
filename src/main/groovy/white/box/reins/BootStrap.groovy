@@ -41,10 +41,23 @@ class BootStrap {
 
 		def db = Sql.newInstance(config.jdbcMap)
 
-//		def listMstDao = new ListMstDao(db)
-//		listMstDao.drop()
+		try {
+			println "search tables"
+			def rows = db.rows("select listId from list_mst")
 
-		db.execute('DROP DATABASE h2.db')
+			rows.each {
+				String tablename = """list_${it.get("listId")}"""
+				String sql = "drop table $tablename"
+				println sql
+				db.execute(sql)
+			}
+
+			println "drop table list_mst"
+			db.execute('drop table list_mst')
+		} catch (e) {
+			println "end"
+		}
+
 		db.close()
 	}
 }

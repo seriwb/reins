@@ -7,6 +7,6 @@ class ListData {
 	String screenName
 	int counterStatus
 	String attribute
-	String tweetUrl
+	long statusId
 	Date tweetDate
 }

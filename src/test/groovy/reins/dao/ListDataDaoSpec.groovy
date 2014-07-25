@@ -43,7 +43,7 @@ class ListDataDaoSpec extends Specification {
 						counterStatus:0,
 						url : "http://hoge",
 						attribute : "twitter",
-						tweetUrl:"https://twitter.com/",
+						statusId:1234567890,
 						tweetDate:new Date())
 
 		//		println listData.getProperties().findAll{
@@ -69,7 +69,7 @@ class ListDataDaoSpec extends Specification {
 		listData.screenName    == result.screenName
 		listData.counterStatus == result.counterStatus
 		listData.attribute     == result.attribute
-		listData.tweetUrl      == result.tweetUrl
+		listData.statusId      == result.statusId
 		listData.tweetDate.format("yyyy-MM-dd HH:mm:ss.SSSZ") ==
 			result.tweetDate.format("yyyy-MM-dd HH:mm:ss.SSSZ")
 

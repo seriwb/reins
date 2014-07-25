@@ -14,8 +14,9 @@ class ListMstDao {
 		db.execute("""
 create table list_mst(
 		id bigint auto_increment not null primary key,
-		listId bigint,
-		listName varchar2(200))""")
+		listId bigint unique,
+		listName varchar2(200),
+		sinceId bigint)""")
 	}
 
 	def insert(long listId, String listname) {
@@ -29,12 +30,20 @@ create table list_mst(
 		db.rows("""select count(*) from list_mst""")
 	}
 
+	def getSinceId(long listId) {
+		db.firstRow("""select sinceId from list_mst where listId = $listId""").get("sinceId")
+	}
+
+	def updateSinceId(long listId, long sinceId) {
+		db.execute("""update list_mst set sinceId = $sinceId where listId = $listId""")
+	}
+
 	/**
 	 * @param id
 	 * @return データがあればtrueを返す
 	 */
 	def find(long listId) {
-		def val = db.firstRow("""select count(*) from list_mst where listId = $listId""").get("count(*)") > 0
+		db.firstRow("""select count(*) from list_mst where listId = $listId""").get("count(*)") > 0
 	}
 
 	def delete() {
