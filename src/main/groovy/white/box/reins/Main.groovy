@@ -15,8 +15,8 @@ class Main {
 
 //		new BootStrap().destroy(config)
 
-		final TwitterWatcher tw = new TwitterWatcher(config)
-		final ImageGetter ig = new ImageGetter(config)
+		TwitterWatcher tw = new TwitterWatcher(config)
+		ImageGetter ig = new ImageGetter(config)
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run () {
