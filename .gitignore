@@ -5,3 +5,5 @@
 /.classpath
 /build
 /db/*.db
+/dir
+/log
