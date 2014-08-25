@@ -46,7 +46,7 @@ create table list_${listId} (
 
 	/**
 	 * ダウンロード画像データ取得
-	 *
+	 * TODO:do test
 	 * @return
 	 */
 	def getImageInfo(long listId, String attribute, int max) {
