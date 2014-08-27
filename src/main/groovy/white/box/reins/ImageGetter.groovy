@@ -42,7 +42,7 @@ class ImageGetter extends Thread {
 	@Override
 	public void run() {
 
-		Sql db = Sql.newInstance(config.jdbcMap)
+		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		def listMstDao = new ListMstDao(db)
 		def listDataDao = new ListDataDao(db)
 
