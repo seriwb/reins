@@ -18,8 +18,8 @@ class ReinsMstDao {
 	}
 
 	/**
-	 * 
-	 * @return 
+	 *
+	 * @return
 	 */
 	def create() {
 		db.execute("""
@@ -39,8 +39,14 @@ create table reins_mst(
 		db.rows("""select count(*) from reins_mst""")
 	}
 
-	def getValue(String key) {
-		db.firstRow("""select value from reins_mst where key = $key""").get("value")
+	String getValue(String key) {
+		def res = db.firstRow("""select value from reins_mst where key = $key""")
+		if (res == null) {
+			return ""
+		}
+		else {
+			return res.get("value")
+		}
 	}
 
 	/**

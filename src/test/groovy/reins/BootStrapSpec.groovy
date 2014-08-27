@@ -23,14 +23,14 @@ class BootStrapSpec extends Specification {
 		desktop.browse(new URI('https://github.com/seriwb'))
 	}
 
-	def 文字入力確認() {
-		setup:
-
-		println "実施直前"
-		Scanner scan = new Scanner(System.in)
-		println "実施直後"
-
-		println "メソッド実行：" + scan.next()
-
-	}
+//	def 文字入力確認() {
+//		setup:
+//
+//		println "実施直前"
+//		Scanner scan = new Scanner(System.in)
+//		println "実施直後"
+//
+//		println "メソッド実行：" + scan.next()
+//
+//	}
 }

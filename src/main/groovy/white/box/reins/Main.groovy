@@ -1,6 +1,7 @@
 package white.box.reins
 
 import groovy.sql.Sql
+import white.box.reins.component.OAuthComponent
 
 /**
  * 実行クラス
@@ -11,9 +12,15 @@ class Main {
 
 	static void main(String[] args) {
 
-		def config = new BootStrap().init()
+		def bs = new BootStrap()
+		def config = bs.init()
 
-//		new BootStrap().destroy(config)
+//		bs.destroy()
+
+		def oauth = new OAuthComponent()
+		if (!oauth.isAuthorized()) {
+			oauth.authorize()
+		}
 
 		TwitterWatcher tw = new TwitterWatcher(config)
 		ImageGetter ig = new ImageGetter(config)

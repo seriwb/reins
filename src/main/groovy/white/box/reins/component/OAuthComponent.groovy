@@ -44,12 +44,12 @@ class OAuthComponent {
 			return false
 		}
 		else {
+			// 認証可能なAccessTokenを保持しているかを確認
 			TwitterFactory factory = new TwitterFactory()
 			AccessToken accessToken = new AccessToken(access_token, access_token_secret)
 			Twitter twitter = factory.getInstance()
 			twitter.setOAuthAccessToken(accessToken)
 
-			// 先にユーザ情報を取り、これを使いまわす
 			try {
 				twitter.verifyCredentials()
 			} catch (TwitterException te) {
@@ -68,25 +68,20 @@ class OAuthComponent {
 	public void authorize() {
 
 		Twitter twitter = TwitterFactory.getSingleton()
-		log.debug "OAuth start."
-
-		// check accessToken
-
+		log.debug "OAuth authentication start."
 
 		RequestToken requestToken = twitter.getOAuthRequestToken()
 		log.debug "request token: " + requestToken
 
 		AccessToken accessToken = null
-		//		BufferedReader br = new BufferedReader(new InputStreamReader(System.in))
-
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in))
 
 		while (null == accessToken) {
 			// ブラウザで認証ページを表示
 			WebUtil.viewUrlPage(requestToken.getAuthorizationURL())
 
 			print "Enter the PIN(if aviailable) or just hit enter.[PIN]:"
-			Scanner scan = new Scanner(System.in)
-			String pin = scan.next()
+			String pin = br.readLine()
 
 			try {
 				if (pin.length() > 0) {
@@ -97,22 +92,35 @@ class OAuthComponent {
 				}
 			}
 			catch (TwitterException te) {
-				if (401 == te.getStatusCode()) {
+				if (te.getStatusCode() == 401) {
 					println "Unable to get the access token."
 				}
 				else {
 					te.printStackTrace()
+					log.error "OAuth Error:0001"
+					throw new RuntimeException("OAuth authentication failed. please retry it.")
 				}
+			}
+		}
+
+		// 取得したAccess Tokenで認証チェック
+		twitter.setOAuthAccessToken(accessToken)
+		try {
+			twitter.verifyCredentials()
+		} catch (TwitterException te) {
+			if (te.getStatusCode() == 401) {
+				log.error "OAuth Error:0002"
+				throw new RuntimeException("access token not enabled. please retry it.")
 			}
 		}
 
 		// accessTokenを永続化
 		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		def reinsMstDao = new ReinsMstDao(db)
-		log.info "accessToken : " + accessToken.getToken()
-		log.info "accessTokenSecret : " + accessToken.getTokenSecret()
+		log.debug "accessToken : " + accessToken.getToken()
+		log.debug "accessTokenSecret : " + accessToken.getTokenSecret()
 		checkKeyAndInsertUpdate(reinsMstDao, ACCESS_TOKEN, accessToken.getToken())
-		checkKeyAndInsertUpdate(reinsMstDao, "accessTokenSecret", accessToken.getTokenSecret())
+		checkKeyAndInsertUpdate(reinsMstDao, ACCESS_TOKEN_SECRET, accessToken.getTokenSecret())
 	}
 
 	/**

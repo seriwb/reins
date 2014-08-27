@@ -35,12 +35,6 @@ def defaultEncoding = 'UTF-8'
 tasks.withType(AbstractCompile) each { it.options.encoding = defaultEncoding }
 tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding }
 
-//uploadArchives {
-//	repositories {
-//		flatDir { dirs 'repos' }
-//	}
-//}
-
 jar {
 	from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
 	manifest {
@@ -50,6 +44,10 @@ jar {
 			'Main-Class' : 'white.box.reins.Main'
 		)
 	}
+}
+
+run {
+	standardInput = System.in
 }
 
 mainClassName = 'white.box.reins.Main'
