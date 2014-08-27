@@ -13,7 +13,7 @@
 		<Routing name="Routing">
 			<Routes pattern="$${sd:type}">
 				<Route>
-					<RollingFile name="RollingFile" fileName="log/reins.log" filePattern="log/reins_%d{yyyy-MM-dd}.log.gz">
+					<RollingFile name="RollingFile" fileName="log/reins_test.log" filePattern="log/reins_%d{yyyy-MM-dd}_test.log.gz">
 <!-- 					<RollingFile name="RollingFile" fileName="reins-${sd:type}.log" filePattern="reins-${sd:type}_%d{yyyy-MM-dd}.log.gz"> -->
 						<PatternLayout>
 							<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}\t[%t]\t%-5level\t%logger{36}\t%msg%n</pattern>
@@ -29,7 +29,7 @@
 		<Routing name="RoutingJson">
 			<Routes pattern="$${sd:type}">
 				<Route>
-					<RollingFile name="RollingJsonFile" fileName="log/reins.log.json" filePattern="log/reins_%d{yyyy-MM-dd}.log.json.gz">
+					<RollingFile name="RollingJsonFile" fileName="log/reins_test.log.json" filePattern="log/reins_%d{yyyy-MM-dd}_test.log.json.gz">
 <!-- 					<RollingFile name="RollingFile" fileName="reins-${sd:type}.log.json" filePattern="reins-${sd:type}_%d{yyyy-MM-dd}.log.json.gz"> -->
 						<JsonLayout complete="true" charset="UTF-8">
 						</JsonLayout>
@@ -47,6 +47,11 @@
 			<AppenderRef ref="Console" />
 		</Root>
 
+		<Logger name="reins" level="trace" additivity="false">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="Routing" />
+			<AppenderRef ref="RoutingJson" />
+		</Logger>
 		<Logger name="white.box.reins" level="trace" additivity="false">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="Routing" />
