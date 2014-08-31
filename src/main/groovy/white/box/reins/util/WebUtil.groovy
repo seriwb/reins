@@ -21,7 +21,7 @@ public abstract class WebUtil {
 	 * @param statusId TweetID
 	 * @return TweetのURL
 	 */
-	public static String getTwitterUrl(String screenName, String statusId) {
+	public static String getTwitterUrl(String screenName, Long statusId) {
 		"https://twitter.com/${screenName}/status/${statusId}"
 	}
 
