@@ -32,7 +32,7 @@ create table reins_mst(
 	def insert(String key, String value) {
 
 		def listSet = db.dataSet("reins_mst")
-		listSet.add([key : key, key : key])
+		listSet.add([key : key, value : value])
 	}
 
 	def countRows() {
