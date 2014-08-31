@@ -36,7 +36,13 @@ create table list_mst(
 	}
 
 	def getSinceId(long listId) {
-		db.firstRow("""select sinceId from list_mst where listId = $listId""").get("sinceId")
+		def res = db.firstRow("""select sinceId from list_mst where listId = $listId""")
+		if (res == null) {
+			return ""
+		}
+		else {
+			return res.get("sinceId")
+		}
 	}
 
 	/**
