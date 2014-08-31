@@ -52,8 +52,6 @@ class TwitterWatcher extends Thread {
 		// リストごとにスリープ、リスト終わって長めのスリープ
 		int waittime = config.reins.loop.waittime
 
-//		int counter = 0		// TODO:テスト用
-//		while(loop && counter++ < 3) {
 		while(loop) {
 
 			// TODO:以下の処理で401が返ってきた場合は、再認証処理を行う必要がある

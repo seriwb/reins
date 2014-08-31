@@ -7,10 +7,9 @@ import white.box.reins.dao.ListMstDao
 import white.box.reins.util.WebUtil
 
 /**
- * DB内のデータから画像をダウンロードするクラス
+ * DB内のデータから画像をダウンロードする。<br>
  *
- * 課題：
- * ・テーブル複数あるがどう取得する？テーブル分スレッドを起こす？
+ * 複数のテーブルを逐次的に走査し、未ダウンロードの画像があれば取得する。
  *
  * @author seri
  */
@@ -50,8 +49,6 @@ class ImageGetter extends Thread {
 		// スリープ
 		int waittime = config.reins.loop.waittime
 
-//		int counter = 0		// TODO:テスト用
-//		while(loop && counter++ < 3) {
 		while(loop) {
 
 			// リスト一覧の取得
