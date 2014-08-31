@@ -1,5 +1,6 @@
 package white.box.reins.util
 
+import java.awt.Desktop
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel
 
@@ -13,17 +14,33 @@ import java.nio.channels.ReadableByteChannel
  */
 public abstract class WebUtil {
 
-	public static String getURL(String text) {
-
-		def urlList = text.findAll {
-			it.startsWith('http') && it.endsWith('dles')
-		}
-	}
-
-	public static String getTwitterUrl(String screenName, String statusId) {
+	/**
+	 * 指定のTweetが表示されるTwitterのURLを返す
+	 *
+	 * @param screenName Twitterユーザ名
+	 * @param statusId TweetID
+	 * @return TweetのURL
+	 */
+	public static String getTwitterUrl(String screenName, Long statusId) {
 		"https://twitter.com/${screenName}/status/${statusId}"
 	}
 
+	/**
+	 * 指定したURLのページをデフォルトのブラウザで表示する
+	 *
+	 * @param url 表示するURL
+	 * @return 表示できたtrue
+	 */
+	public static void viewUrlPage(String url) {
+		Desktop desktop = Desktop.getDesktop()
+		desktop.browse(new URI(url))
+	}
+
+	//	public static String getURL(String text) {
+	//		def urlList = text.findAll {
+	//			it.startsWith('http') && it.endsWith('dles')
+	//		}
+	//	}
 
 
 	//	public String expandQueryURL(String urlStr, String queryStr) {

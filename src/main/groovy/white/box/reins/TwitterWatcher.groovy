@@ -1,16 +1,12 @@
 package white.box.reins
 
 import groovy.sql.Sql
+import groovy.util.logging.Slf4j
 import twitter4j.Paging
-import twitter4j.ResponseList;
-import twitter4j.Status;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.TwitterFactory;
-import twitter4j.User
-import twitter4j.UserList;
-import twitter4j.auth.AccessToken;
-import twitter4j.auth.RequestToken;
+import twitter4j.ResponseList
+import twitter4j.Status
+import twitter4j.Twitter
+import twitter4j.UserList
 import white.box.reins.dao.ListDataDao
 import white.box.reins.dao.ListMstDao
 import white.box.reins.model.ListData
@@ -20,14 +16,17 @@ import white.box.reins.model.ListData
  *
  * @author seri
  */
+@Slf4j
 class TwitterWatcher extends Thread {
 
 	def config = null
+	Twitter twitter = null
 
 	private boolean loop = true
 
-	TwitterWatcher(def config) {
+	TwitterWatcher(def config, Twitter twitter) {
 		this.config = config
+		this.twitter = twitter
 	}
 
 	/**
@@ -41,12 +40,10 @@ class TwitterWatcher extends Thread {
 	@Override
 	public void run() {
 
-		Twitter twitter = TwitterFactory.getSingleton()
-
 		// 先にユーザ情報を取り、これを使いまわす
 		def userinfo = twitter.verifyCredentials()
 
-		Sql db = Sql.newInstance(config.jdbcMap)
+		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		def listMstDao = new ListMstDao(db)
 		def listDataDao = new ListDataDao(db)
 
@@ -55,10 +52,9 @@ class TwitterWatcher extends Thread {
 		// リストごとにスリープ、リスト終わって長めのスリープ
 		int waittime = config.reins.loop.waittime
 
-//		int counter = 0		// TODO:テスト用
-//		while(loop && counter++ < 3) {
 		while(loop) {
 
+			// TODO:以下の処理で401が返ってきた場合は、再認証処理を行う必要がある
 			// 認証ユーザが持つリストを取得
 			ResponseList<UserList> lists = twitter.getUserLists(userinfo.getScreenName())
 
@@ -92,7 +88,7 @@ class TwitterWatcher extends Thread {
 					paging = new Paging(1, tweet_max_count)
 				}
 
-				println "$listname current since_id:" + currentSinceId
+				println "[check]$listname current since_id:" + currentSinceId
 
 				// 最大200×10ツイートの取得
 				for (int i=1; i <= paging_max_count; i++) {
@@ -156,6 +152,7 @@ class TwitterWatcher extends Thread {
 			}
 
 			// 1周したら結構待つ
+			log.debug "list check completed. wait ${waittime * 600 / 1000}s until next search."
 			Thread.sleep(waittime * 600)
 		}
 	}

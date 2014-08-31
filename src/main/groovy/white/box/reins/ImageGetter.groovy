@@ -1,19 +1,19 @@
 package white.box.reins
 
 import groovy.sql.Sql
+import groovy.util.logging.Slf4j
 import white.box.reins.dao.ListDataDao
 import white.box.reins.dao.ListMstDao
-import white.box.reins.model.ListMst
 import white.box.reins.util.WebUtil
 
 /**
- * DB内のデータから画像をダウンロードするクラス
+ * DB内のデータから画像をダウンロードする。<br>
  *
- * 課題：
- * ・テーブル複数あるがどう取得する？テーブル分スレッドを起こす？
+ * 複数のテーブルを逐次的に走査し、未ダウンロードの画像があれば取得する。
  *
  * @author seri
  */
+@Slf4j
 class ImageGetter extends Thread {
 
 	def config = null			// 設定値
@@ -42,15 +42,13 @@ class ImageGetter extends Thread {
 	@Override
 	public void run() {
 
-		Sql db = Sql.newInstance(config.jdbcMap)
+		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		def listMstDao = new ListMstDao(db)
 		def listDataDao = new ListDataDao(db)
 
 		// スリープ
 		int waittime = config.reins.loop.waittime
 
-//		int counter = 0		// TODO:テスト用
-//		while(loop && counter++ < 3) {
 		while(loop) {
 
 			// リスト一覧の取得
@@ -59,7 +57,8 @@ class ImageGetter extends Thread {
 			// リストが全然ないなら動きようがないですな
 			if (listInfos == null || listInfos.size() == 0) {
 				// リストができるまでしばらく待つ
-				sleep(30000)
+				log.info "reins is working to create list information. wait 20000 ms until next search."
+				sleep(20000)
 				continue
 			}
 			else {
@@ -71,14 +70,13 @@ class ImageGetter extends Thread {
 						[ listId : it.get("listId"), listName : it.get("listName") ]
 					}.each { listInfo ->
 
-						println "listInfo:$listInfo"
+						log.debug "listInfo:$listInfo"
 
 						int max_getimage = 200	// 1テーブルが1回の動作で取得する回数はMAXを定めておく
 						def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
 
 						if (imageInfos == null || imageInfos.size() == 0) {
-							// TODO:debugに直す
-							println "no image url : ${listInfo.listName}"
+							log.debug "no image url : ${listInfo.listName}"
 						}
 						else {
 							imageInfos.collect {
@@ -87,6 +85,7 @@ class ImageGetter extends Thread {
 									url : it.get("url"),
 									screenName : it.get("screenName"),
 									counterStatus : it.get("counterStatus"),
+									statusId : it.get("statusId"),
 									tweetDate : it.get("tweetDate")
 								]
 							}.each { imageInfo ->
@@ -103,9 +102,10 @@ class ImageGetter extends Thread {
 										// 終了を設定
 										imageInfo.counterStatus = -1
 									} catch (e) {
-										println "don't save : ${imageInfo.url}"
 										// 施行回数を上げる
 										imageInfo.counterStatus += 1
+										log.error "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.url}"
+										log.error "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
 									}
 								}
 
@@ -117,6 +117,7 @@ class ImageGetter extends Thread {
 			}
 
 			// 1周したら結構待つ
+			log.debug "image download completed. wait ${waittime * 300 / 1000}s until next download process."
 			Thread.sleep(waittime * 300)
 		}
 	}
