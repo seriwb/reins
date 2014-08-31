@@ -37,15 +37,17 @@ java -jar reins-0.2.jar
 
 そして画像から元のつぶやきがたどれる！・・・ようになる予定です。
 
+
 ## 0.2版での追加機能
 
 ##### OAuthでのクライアント認証に対応
 もうDeveloper登録は必要ありません！！
 
-##### ログ出力対応
-logフォルダ配下にログが出力されるようになりました。
-拡張子logはLTSV形式で、拡張子jsonはJSON形式でのログになります。
+Web認証実施後に表示されるPINをプログラムに渡すことでreinsの利用が可能です。
 
+
+##### ログ出力対応
+logフォルダ配下にLTSV形式のログが出力されるようになりました。  
 バグ報告の際はこちらの情報を合わせて頂けると助かります。
 
 
@@ -63,29 +65,22 @@ Gradleのbuildタスクを実施してください。
 
     gradle build
 
-runタスクでGradleからプログラムを実行することもできます。
+#### プログラムの実行
+以下のクラスに含まれるmainメソッドを実行してください。
 
-    gradle run
+    /reins/src/main/groovy/white/box/reins/Main.groovy
 
-**※Eclipseからgradle runを実行した場合、終了することができないので気を付けてください。**
+**※System.inを入れてからgradle runは正常動作しなくなったため、gradleからの実行はできません。**
 
 ### ビルド環境
 
-- JDK : 1.8.0_11
+- JDK : 1.8.0_20
 - Groovy : 2.3.3
 - Gradle : 2.0
 
 
 
 ## 現在の制約
-
-### 開発者登録が必要
-Twitterアカウントを認証させるために、
-[TwitterのDevelopersサイト](https://dev.twitter.com/)でTwitterの開発者アカウント登録を行う必要があります。
-適当なアプリケーションを登録し、以下をtwitter4j.propertiesに記述してください。
-
-- consumerKey
-- consumerSecret
 
 
 ### rate limit対策が不十分

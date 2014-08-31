@@ -47,10 +47,10 @@
 			<AppenderRef ref="Console" />
 		</Root>
 
-		<Logger name="white.box.reins" level="error" additivity="false">
+		<Logger name="white.box.reins" level="info" additivity="false">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="Routing" />
-			<AppenderRef ref="RoutingJson" />
+			<!-- <AppenderRef ref="RoutingJson" /> -->
 		</Logger>
 	</Loggers>
 </Configuration>

@@ -12,6 +12,7 @@ import white.box.reins.dao.ReinsMstDao
  * <ul>
  * <li>conf/Config.groovyに記載された設定値の読み込み</li>
  * <li>DBの初期データ作成</li>
+ * <li>Twitter API利用の初期処理</li>
  * </ul>
  *
  * 各クロージャはconfigを受け取り、configを返す。
@@ -46,6 +47,20 @@ public class BootStrap {
 
 		db.close()
 
+		// 3---------- Twitter API利用のキー情報を取得 ---------------
+		InputStream  keydata = (BootStrap.class).getResourceAsStream("key.data");
+		byte[] decoded = null
+		keydata.eachLine { decoded = it.decodeBase64() }
+
+		ByteArrayInputStream bais = new ByteArrayInputStream(decoded)
+		ObjectInputStream ois = new ObjectInputStream(bais)
+		Map<String, String> keymap = (HashMap) ois.readObject()
+
+		log.debug "consumerKey: " + keymap.get("consumerKey")
+		log.debug "consumerSecret: " + keymap.get("consumerSecret")
+		config.put("oauth.consumerKey", keymap.get("consumerKey"))
+		config.put("oauth.consumerSecret", keymap.get("consumerSecret"))
+
 		config
 	}
 
@@ -58,20 +73,20 @@ public class BootStrap {
 		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 
 		try {
-			println "search tables"
+			log.debug "search tables"
 			def rows = db.rows("select listId from list_mst")
 
 			rows.each {
 				String tablename = """list_${it.get("listId")}"""
 				String sql = "drop table $tablename"
-				println sql
+				log.debug sql
 				db.execute(sql)
 			}
 
-			println "drop table list_mst"
+			log.debug "drop table list_mst"
 			db.execute('drop table list_mst')
 		} catch (e) {
-			println "end"
+			log.error ("DB init Error!", e)
 		}
 
 		db.close()

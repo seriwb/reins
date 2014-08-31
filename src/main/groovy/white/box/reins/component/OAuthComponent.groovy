@@ -5,13 +5,17 @@ import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import twitter4j.Twitter
 import twitter4j.TwitterException
-import twitter4j.TwitterFactory
 import twitter4j.auth.AccessToken
 import twitter4j.auth.RequestToken
 import white.box.reins.ReinsConstants
 import white.box.reins.dao.ReinsMstDao
 import white.box.reins.util.WebUtil
 
+/**
+ * OAuth認証に関わる処理を行う。
+ *
+ * @author seri
+ */
 @Slf4j
 class OAuthComponent {
 
@@ -33,7 +37,7 @@ class OAuthComponent {
 	 *
 	 * @return 認証済みの場合、true
 	 */
-	public boolean isAuthorized() {
+	public boolean isAuthorized(Twitter twitter) {
 
 		String access_token = reinsmst.getValue(ACCESS_TOKEN)
 		String access_token_secret = reinsmst.getValue(ACCESS_TOKEN_SECRET)
@@ -45,18 +49,26 @@ class OAuthComponent {
 		}
 		else {
 			// 認証可能なAccessTokenを保持しているかを確認
-			TwitterFactory factory = new TwitterFactory()
 			AccessToken accessToken = new AccessToken(access_token, access_token_secret)
-			Twitter twitter = factory.getInstance()
 			twitter.setOAuthAccessToken(accessToken)
 
 			try {
 				twitter.verifyCredentials()
 			} catch (TwitterException te) {
+				// AccessTokenが無効になっているため、既存値を削除
 				if (te.getStatusCode() == 401) {
-					log.debug "access token not enabled."
+					log.error "access token not enabled."
+
+					checkKeyAndInsertUpdate(reinsmst, ACCESS_TOKEN, "")
+					checkKeyAndInsertUpdate(reinsmst, ACCESS_TOKEN_SECRET, "")
+
+					twitter.setOAuthAccessToken(new AccessToken("", ""))
+
 					return false
 				}
+
+				// それ以外のエラーであればログ出力
+				log.error("Authentication Error!", te)
 			}
 		}
 		return true
@@ -65,9 +77,8 @@ class OAuthComponent {
 	/**
 	 * OAuth認証を行う
 	 */
-	public void authorize() {
+	public void authorize(Twitter twitter) {
 
-		Twitter twitter = TwitterFactory.getSingleton()
 		log.debug "OAuth authentication start."
 
 		RequestToken requestToken = twitter.getOAuthRequestToken()
@@ -115,10 +126,20 @@ class OAuthComponent {
 		}
 
 		// accessTokenを永続化
+		storeAccessToken(accessToken)
+	}
+
+	/**
+	 * パラメータで渡されたAccessTokenを永続化する。
+	 *
+	 * @param accessToken 永続するAccessToken
+	 */
+	void storeAccessToken(AccessToken accessToken) {
+
 		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		def reinsMstDao = new ReinsMstDao(db)
-		log.debug "accessToken : " + accessToken.getToken()
-		log.debug "accessTokenSecret : " + accessToken.getTokenSecret()
+		log.debug "store accessToken : " + accessToken.getToken()
+		log.debug "store accessTokenSecret : " + accessToken.getTokenSecret()
 		checkKeyAndInsertUpdate(reinsMstDao, ACCESS_TOKEN, accessToken.getToken())
 		checkKeyAndInsertUpdate(reinsMstDao, ACCESS_TOKEN_SECRET, accessToken.getTokenSecret())
 	}
@@ -140,6 +161,5 @@ class OAuthComponent {
 			dao.insert(key, value)
 		}
 	}
-
 
 }

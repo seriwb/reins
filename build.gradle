@@ -1,6 +1,6 @@
 apply plugin: 'groovy'
 apply plugin: 'eclipse'
-apply plugin: 'application'
+//apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 version = '0.2'
@@ -35,6 +35,49 @@ def defaultEncoding = 'UTF-8'
 tasks.withType(AbstractCompile) each { it.options.encoding = defaultEncoding }
 tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding }
 
+
+compileJava {
+	
+	// twitter4j.propertiesを使って使用するconsumer keysを設定する
+	def prop = new Properties()
+	prop.load(new FileInputStream("$projectDir/twitter4j.properties"))
+	def config = new ConfigSlurper().parse(prop)
+	
+	// バイトデータでキー情報を保持
+	Map <String, String> keymap = new HashMap<>()
+	keymap.put("consumerKey", config.oauth.consumerKey)
+	keymap.put("consumerSecret", config.oauth.consumerSecret)
+
+	File keydata = new File("$projectDir/src/main/resources/white/box/reins/key.data")
+	if (!keydata.exists()) {
+		keydata.createNewFile()
+	}
+
+	ByteArrayOutputStream baos = new ByteArrayOutputStream()
+	ObjectOutputStream oos = new ObjectOutputStream(baos)
+	oos.writeObject(keymap)
+	keydata.write(baos.toByteArray().encodeBase64().toString())
+}
+
+//jar {
+//	copy {
+//		from configurations.compile
+//		into "tmp/lib"
+//	}
+//	String manifestClasspath = configurations.compile.collect { "lib/" + it.getName() }.join(' ')
+//	manifest {
+//		attributes (
+//			'Implementation-Title': 'reins',
+//			'Implementation-Version': version,
+//			'Class-Path': ". ".concat(manifestClasspath),
+//			'Main-Class' : 'white.box.reins.Main'
+//		)
+//	}
+//	from (configurations.compile.resolve().collect { it.isDirectory() ? it : fileTree(it) })
+//	destinationDir = file("tmp")
+//}
+
+// fat jar用の設定
 jar {
 	from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
 	manifest {
@@ -46,8 +89,8 @@ jar {
 	}
 }
 
-run {
-	standardInput = System.in
-}
-
-mainClassName = 'white.box.reins.Main'
+//run {
+//	standardInput = System.in
+//}
+//
+//mainClassName = 'white.box.reins.Main'
