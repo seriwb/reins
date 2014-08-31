@@ -51,9 +51,9 @@ create table list_${listId} (
 	 */
 	def getImageInfo(long listId, String attribute, int max) {
 		db.rows("""
-select id, url, screenName, counterStatus, tweetDate
+select id, url, screenName, counterStatus, statusId, tweetDate
  from list_$listId""".toString() + """
- where (counterStatus between 0 and 10)
+ where (counterStatus between 0 and 5)
  and attribute = '$attribute'
  limit $max""")
 	}
