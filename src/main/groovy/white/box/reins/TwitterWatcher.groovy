@@ -54,6 +54,8 @@ class TwitterWatcher extends Thread {
 
 		while(loop) {
 
+			// TODO:twitterのread time out(TwitterExceptionをcatchするようにする
+
 			// TODO:以下の処理で401が返ってきた場合は、再認証処理を行う必要がある
 			// 認証ユーザが持つリストを取得
 			ResponseList<UserList> lists = twitter.getUserLists(userinfo.getScreenName())
@@ -90,7 +92,7 @@ class TwitterWatcher extends Thread {
 
 				println "[check]$listname current since_id:" + currentSinceId
 
-				// 最大200×10ツイートの取得
+				// 最大200(tweet_max_count)×10(paging_max_count)ツイートを取得し、チェックする
 				for (int i=1; i <= paging_max_count; i++) {
 					paging.page = i
 					ResponseList<Status> statuses = twitter.getUserListStatuses(listId, paging)
@@ -100,45 +102,7 @@ class TwitterWatcher extends Thread {
 					}
 
 					for (Status status : statuses) {
-//					statuses.each { status ->
-
-						def screenName = status.getUser().getScreenName()
-						// RTの場合はRT元のユーザー名を格納する
-						if (status.getRetweetedStatus() != null) {
-							screenName = status.getRetweetedStatus().getUser().getScreenName()
-						}
-						// 共通的な値はあらかじめ入れる
-						ListData listdata = new ListData(
-										screenName : screenName,
-										counterStatus : 0,
-										statusId : status.getId(),
-										tweetDate : status.getCreatedAt())
-
-						// media_urlならTwitter公式、それ以外は別形式で保存
-						def mediaList = status.getMediaEntities()
-						mediaList.each {
-							listdata.url = it.getMediaURL()
-							listdata.attribute = "twitter"
-
-							listDataDao.insert(listId, listdata)
-						}
-						// ----------■公式以外のリンクを取得する場合はここに書く--------------
-						def urlsList = status.getURLEntities()
-						urlsList.each {
-							// pixivリンクの保存
-							if(it.getExpandedURL() =~ """www.pixiv.net/member_illust.php""") {
-								listdata.url = it.getExpandedURL()
-								listdata.attribute = "pixiv"
-								listDataDao.insert(listId, listdata)
-							}
-							// gifの保存
-							else if (it.getExpandedURL() =~ /.gif$/) {
-								listdata.url = it.getExpandedURL()
-								listdata.attribute = "gif"
-								listDataDao.insert(listId, listdata)
-							}
-						}
-						// ---------------------------------------------------------------------
+						registerImageUrl(listId, status, listDataDao)
 					}
 
 					if (i==1) {
@@ -152,8 +116,66 @@ class TwitterWatcher extends Thread {
 			}
 
 			// 1周したら結構待つ
-			log.debug "list check completed. wait ${waittime * 600 / 1000}s until next search."
+			log.info "list check completed. wait ${waittime * 600 / 1000}s until next search."
 			Thread.sleep(waittime * 600)
 		}
+	}
+
+
+	/**
+	 * Tweetに画像関係のURLが含まれていれば、
+	 * そのURLをlist_${listId}テーブルに登録する。<br>
+	 *
+	 * @param listId チェック対象のリストのID
+	 * @param status Tweet情報
+	 * @param listDataDao list_${listId}のDAO
+	 */
+	protected void registerImageUrl(
+					long listId,
+					Status status,
+					def listDataDao) {
+
+		// Tweetしたユーザー名
+		def screenName = null
+		if (status.getRetweetedStatus() != null) {
+			// RTの場合はRT元のユーザー名を格納する
+			screenName = status.getRetweetedStatus().getUser().getScreenName()
+		}
+		else {
+			screenName = status.getUser().getScreenName()
+		}
+
+		// DB登録時の共通値設定
+		ListData listdata = new ListData(
+						screenName : screenName,
+						counterStatus : 0,
+						statusId : status.getId(),
+						tweetDate : status.getCreatedAt())
+
+		// media_urlならTwitter公式、それ以外は別形式で保存
+		def mediaList = status.getMediaEntities()
+		mediaList.each {
+			listdata.url = it.getMediaURL()
+			listdata.attribute = "twitter"
+
+			listDataDao.insert(listId, listdata)
+		}
+		// ----------■公式以外のリンクを取得する場合はここに書く--------------
+		def urlsList = status.getURLEntities()
+		urlsList.each {
+			// pixivリンクの保存
+			if(it.getExpandedURL() =~ """www.pixiv.net/member_illust.php""") {
+				listdata.url = it.getExpandedURL()
+				listdata.attribute = "pixiv"
+				listDataDao.insert(listId, listdata)
+			}
+			// gifの保存
+			else if (it.getExpandedURL() =~ /.gif$/) {
+				listdata.url = it.getExpandedURL()
+				listdata.attribute = "gif"
+				listDataDao.insert(listId, listdata)
+			}
+		}
+		// ---------------------------------------------------------------------
 	}
 }
