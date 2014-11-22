@@ -70,13 +70,13 @@ class ImageGetter extends Thread {
 						[ listId : it.get("listId"), listName : it.get("listName") ]
 					}.each { listInfo ->
 
-						log.debug "listInfo:$listInfo"
+						log.info "listInfo:$listInfo"
 
 						int max_getimage = 200	// 1テーブルが1回の動作で取得する回数はMAXを定めておく
 						def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
 
 						if (imageInfos == null || imageInfos.size() == 0) {
-							log.debug "no image url : ${listInfo.listName}"
+							log.info "no image url : ${listInfo.listName}"
 						}
 						else {
 							imageInfos.collect {
@@ -104,8 +104,8 @@ class ImageGetter extends Thread {
 									} catch (e) {
 										// 施行回数を上げる
 										imageInfo.counterStatus += 1
-										log.error "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.url}"
-										log.error "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
+										log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.url}"
+										log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
 									}
 								}
 
@@ -117,7 +117,7 @@ class ImageGetter extends Thread {
 			}
 
 			// 1周したら結構待つ
-			log.debug "image download completed. wait ${waittime * 300 / 1000}s until next download process."
+			log.info "image download completed. wait ${waittime * 300 / 1000}s until next download process."
 			Thread.sleep(waittime * 300)
 		}
 	}

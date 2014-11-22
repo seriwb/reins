@@ -56,8 +56,6 @@ public class BootStrap {
 		ObjectInputStream ois = new ObjectInputStream(bais)
 		Map<String, String> keymap = (HashMap) ois.readObject()
 
-		log.debug "consumerKey: " + keymap.get("consumerKey")
-		log.debug "consumerSecret: " + keymap.get("consumerSecret")
 		config.put("oauth.consumerKey", keymap.get("consumerKey"))
 		config.put("oauth.consumerSecret", keymap.get("consumerSecret"))
 
