@@ -7,11 +7,11 @@ Twitterアカウントのリストのタイムラインから画像を含んだ�
 ## 使い方
 
 0. [Java SE 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)をインストール。
-1. releaseからzipファイルを取得し、適当な場所に展開。
+1. [releases](https://github.com/seriwb/reins/releases)からzipファイルを取得し、適当な場所に展開。
 2. 必要に応じてconf/Config.groovyの値を調整。
-3. コンソールからreins-0.2.jarがある場所まで移動し、以下のコマンドを実行。
+3. コンソールからreins-0.2.1.jarがある場所まで移動し、以下のコマンドを実行。
 ```
-java -jar reins-0.2.jar
+java -jar reins-0.2.1.jar
 ```
 
 しばらくするとdirフォルダ配下にダウンロードファイルが保存されていきます。
@@ -47,9 +47,13 @@ Web認証実施後に表示されるPINをプログラムに渡すことでreins
 
 
 ##### ログ出力対応
-logフォルダ配下にLTSV形式のログが出力されるようになりました。  
+logフォルダ配下にLTSV形式のログが出力されるようになりました。
 バグ報告の際はこちらの情報を合わせて頂けると助かります。
 
+
+##### ネットワーク接続エラーへの対応（0.2.1版）
+Twitterから情報取得時にネットワークエラーが発生した場合、
+15分後、再度処理を行うようになりました。
 
 
 ### バグ対応
