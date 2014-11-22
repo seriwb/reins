@@ -39,6 +39,7 @@ class OAuthComponentSpec extends Specification {
 		println "メソッド実行：" + scan.next()
 	}
 
+	@Ignore
 	def isAuthorized_AccessTokenなし() {
 
 		setup:
