@@ -48,7 +48,11 @@ compileJava {
 	keymap.put("consumerKey", config.oauth.consumerKey)
 	keymap.put("consumerSecret", config.oauth.consumerSecret)
 
-	File keydata = new File("$projectDir/src/main/resources/white/box/reins/key.data")
+	File keydataPath = new File("$projectDir/src/main/resources/white/box/reins")
+	if (!keydataPath.exists()) {
+		keydataPath.mkdirs()
+	}
+	File keydata = new File(keydataPath, "key.data")
 	if (!keydata.exists()) {
 		keydata.createNewFile()
 	}

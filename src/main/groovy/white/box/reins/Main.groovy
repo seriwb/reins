@@ -51,6 +51,7 @@ class Main {
 			}
 		});
 
+		// 常駐プログラムの実行
 		try {
 			tw.start()
 			ig.start()
