@@ -43,13 +43,13 @@ class Main {
 		ImageGetter ig = new ImageGetter(config)
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run () {
+			void run () {
 				tw.stopRunning()
 				ig.stopRunning()
 
 				println "exit."
 			}
-		});
+		})
 
 		// 常駐プログラムの実行
 		try {

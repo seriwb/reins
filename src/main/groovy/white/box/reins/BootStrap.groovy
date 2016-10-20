@@ -20,12 +20,12 @@ import white.box.reins.dao.ReinsMstDao
  * @author seri
  */
 @Slf4j
-public class BootStrap {
+class BootStrap {
 
 	def init = { config ->
 		// 1---------- 設定値の初期化 ---------------
 		config = new ConfigSlurper().parse(
-						new File('./conf/Config.groovy').toURI().toURL())
+				new File('./conf/Config.groovy').toURI().toURL())
 
 		// 2---------- DBの初期化 ---------------
 		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
