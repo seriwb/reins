@@ -1,6 +1,6 @@
 package white.box.reins.dao
 
-import groovy.sql.Sql;
+import groovy.sql.Sql
 import white.box.reins.model.ListData
 
 /**
@@ -18,15 +18,14 @@ class ListDataDao {
 
 	def create(long listId) {
 
-		db.execute("""
-create table list_${listId} (
-		id bigint auto_increment not null primary key,
-		url varchar2(300) unique,
-		screenName varchar2(50),
-		counterStatus integer,
-		attribute varchar2(10),
-		statusId bigint,
-		tweetDate datetime)""".toString())
+		db.execute("""create table if not exists list_${listId} (
+					| id bigint auto_increment not null primary key,
+					| url varchar2(300) unique,
+					| screenName varchar2(50),
+					| counterStatus integer,
+					| attribute varchar2(10),
+					| statusId bigint,
+					| tweetDate datetime)""".stripMargin())
 	}
 
 	def insert(long listId, ListData listData) {
@@ -39,6 +38,7 @@ create table list_${listId} (
 				!(it.key in ['id', 'class'])
 			})
 		} catch (e) {
+			// TODO:標準出力を辞める
 			println e
 			println "一意制約なので特に何もしない"
 		}
@@ -50,12 +50,11 @@ create table list_${listId} (
 	 * @return
 	 */
 	def getImageInfo(long listId, String attribute, int max) {
-		db.rows("""
-select id, url, screenName, counterStatus, statusId, tweetDate
- from list_$listId""".toString() + """
- where (counterStatus between 0 and 5)
- and attribute = '$attribute'
- limit $max""")
+		db.rows("""select id, url, screenName, counterStatus, statusId, tweetDate
+				 | from list_$listId
+				 | where (counterStatus between 0 and 5)
+				 | and attribute = '$attribute'
+				 | limit $max""".stripMargin())
 	}
 
 	/**

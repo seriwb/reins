@@ -1,7 +1,7 @@
 package white.box.reins.util
 
 import java.awt.Desktop
-import java.nio.channels.Channels;
+import java.nio.channels.Channels
 import java.nio.channels.ReadableByteChannel
 
 //import groovyx.net.http.HttpURLClient
@@ -12,7 +12,7 @@ import java.nio.channels.ReadableByteChannel
  * @author seri
  *
  */
-public abstract class WebUtil {
+abstract class WebUtil {
 
 	/**
 	 * 指定のTweetが表示されるTwitterのURLを返す
@@ -21,7 +21,7 @@ public abstract class WebUtil {
 	 * @param statusId TweetID
 	 * @return TweetのURL
 	 */
-	public static String getTwitterUrl(String screenName, Long statusId) {
+	static String getTwitterUrl(String screenName, Long statusId) {
 		"https://twitter.com/${screenName}/status/${statusId}"
 	}
 
@@ -31,7 +31,7 @@ public abstract class WebUtil {
 	 * @param url 表示するURL
 	 * @return 表示できたtrue
 	 */
-	public static void viewUrlPage(String url) {
+	static void viewUrlPage(String url) {
 		Desktop desktop = Desktop.getDesktop()
 		desktop.browse(new URI(url))
 	}
@@ -61,8 +61,8 @@ public abstract class WebUtil {
 	 * @param url 画像URL
 	 * @param filepath 画像保存先ファイル
 	 */
-	public static void download(String url, File filepath) {
-		URL website = new URL(url);
+	static void download(String url, File filepath) {
+		URL website = new URL(url)
 		ReadableByteChannel rbc = Channels.newChannel(website.openStream())
 		FileOutputStream fos = new FileOutputStream(filepath)
 		fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE)

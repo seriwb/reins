@@ -21,7 +21,7 @@ class ImageGetter extends Thread {
 
 	private boolean loop = true
 
-	ImageGetter(def config) {
+	ImageGetter(config) {
 		this.config = config
 
 		dirpath = this.config.reins.image.dir
@@ -34,13 +34,13 @@ class ImageGetter extends Thread {
 	 * スレッド停止用メソッド<br>
 	 * スレッド作成元のスレッドで呼ぶように作ること。
 	 */
-	public void stopRunning(){
-		loop = false;
+	void stopRunning(){
+		loop = false
 	}
 
 
 	@Override
-	public void run() {
+	void run() {
 
 		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		def listMstDao = new ListMstDao(db)
@@ -118,7 +118,7 @@ class ImageGetter extends Thread {
 
 			// 1周したら結構待つ
 			log.info "image download completed. wait ${waittime * 300 / 1000}s until next download process."
-			Thread.sleep(waittime * 300)
+			sleep(waittime * 300)
 		}
 	}
 
@@ -127,7 +127,7 @@ class ImageGetter extends Thread {
 	 *
 	 * @param list_name リスト名
 	 * @param screen_name Twitterユーザ名
-	 * @retrun ディレクトリパス
+	 * @return ディレクトリパス
 	 */
 	File mkdir(String list_name, String screen_name) {
 

@@ -37,7 +37,7 @@ class OAuthComponent {
 	 *
 	 * @return 認証済みの場合、true
 	 */
-	public boolean isAuthorized(Twitter twitter) {
+	boolean isAuthorized(Twitter twitter) {
 
 		String access_token = reinsmst.getValue(ACCESS_TOKEN)
 		String access_token_secret = reinsmst.getValue(ACCESS_TOKEN_SECRET)
@@ -77,7 +77,7 @@ class OAuthComponent {
 	/**
 	 * OAuth認証を行う
 	 */
-	public void authorize(Twitter twitter) {
+	void authorize(Twitter twitter) {
 
 		log.debug "OAuth authentication start."
 
@@ -152,7 +152,7 @@ class OAuthComponent {
 	 * @param value
 	 * @return
 	 */
-	def checkKeyAndInsertUpdate(def dao, String key, String value) {
+	def checkKeyAndInsertUpdate(dao, String key, String value) {
 
 		if(dao.findKey(key)) {
 			dao.updateValue(key, value)

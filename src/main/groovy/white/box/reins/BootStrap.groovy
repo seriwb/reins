@@ -48,7 +48,7 @@ class BootStrap {
 		db.close()
 
 		// 3---------- Twitter API利用のキー情報を取得 ---------------
-		InputStream  keydata = (BootStrap.class).getResourceAsStream("key.data");
+		InputStream  keydata = (BootStrap.class).getResourceAsStream("key.data")
 		byte[] decoded = null
 		keydata.eachLine { decoded = it.decodeBase64() }
 

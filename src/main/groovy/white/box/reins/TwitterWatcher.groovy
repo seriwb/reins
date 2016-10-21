@@ -42,7 +42,7 @@ class TwitterWatcher extends Thread {
 	 * @param config Config値
 	 * @param twitter Twitterインスタンス
 	 */
-	TwitterWatcher(def config, Twitter twitter) {
+	TwitterWatcher(config, Twitter twitter) {
 		this.config = config
 		this.twitter = twitter
 
@@ -55,12 +55,12 @@ class TwitterWatcher extends Thread {
 	 * スレッド停止用メソッド<br>
 	 * スレッド作成元のスレッドで終了時に呼ぶこと。
 	 */
-	public void stopRunning(){
-		loop = false;
+	void stopRunning(){
+		loop = false
 	}
 
 	@Override
-	public void run() {
+	void run() {
 
 		// 先にユーザ情報を取り、これを使いまわす
 		def userinfo = twitter.verifyCredentials()
@@ -77,7 +77,7 @@ class TwitterWatcher extends Thread {
 			catch (TwitterException te) {
 				log.error("Twitter service or network is unavailable.", te)
 				log.info "Twitter service or network is unavailable. wait ${15} minutes until next search."
-				Thread.sleep(15 * 60 * 1000)
+				sleep(15 * 60 * 1000)
 			}
 		}
 	}
@@ -90,7 +90,7 @@ class TwitterWatcher extends Thread {
 	 * @param listMstDao リストマスタ参照用のDAO
 	 * @param listDataDao リストデータの作成に利用するDAO
 	 */
-	protected void loopImageGetTask(def userinfo, def listMstDao, def listDataDao)
+	protected void loopImageGetTask(userinfo, listMstDao, listDataDao)
 	throws TwitterException {
 
 		// 認証ユーザが持つリストを取得
@@ -174,12 +174,12 @@ class TwitterWatcher extends Thread {
 			}
 
 			// リストごとにちょっと待つ
-			Thread.sleep(WAIT_TIME * 10)
+			sleep(WAIT_TIME * 10)
 		}
 
 		// 1周したら結構待つ
 		log.info "list check completed. wait ${WAIT_TIME * 600 / 1000}s until next search."
-		Thread.sleep(WAIT_TIME * 600)
+		sleep(WAIT_TIME * 600)
 	}
 
 
@@ -192,10 +192,7 @@ class TwitterWatcher extends Thread {
 	 * @param status Tweet情報
 	 * @param listDataDao list_${listId}のDAO
 	 */
-	protected void registerImageUrl(
-					long listId,
-					Status status,
-					def listDataDao) {
+	protected void registerImageUrl(long listId, Status status, listDataDao) {
 
 		// Tweetしたユーザー名
 		def screenName = null

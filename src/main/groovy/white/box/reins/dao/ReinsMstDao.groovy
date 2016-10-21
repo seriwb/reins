@@ -22,11 +22,10 @@ class ReinsMstDao {
 	 * @return
 	 */
 	def create() {
-		db.execute("""
-create table reins_mst(
-		id bigint auto_increment not null primary key,
-		key varchar2(200),
-		value varchar2(200))""")
+		db.execute("""create table if not exists reins_mst(
+					| id bigint auto_increment not null primary key,
+					| key varchar2(200),
+					| value varchar2(200))""".stripMargin())
 	}
 
 	def insert(String key, String value) {

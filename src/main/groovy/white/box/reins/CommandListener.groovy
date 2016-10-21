@@ -30,7 +30,7 @@ class CommandListener extends Thread {
 	 * ・各コマンドクラスにはConfigを渡す。<br>
 	 * @param config システム設定値
 	 */
-	CommandListener(def config) {
+	CommandListener(config) {
 
 		this.config = config
 		// TODO:コマンドクラスのインスタンスを生成してMapに格納する
@@ -40,12 +40,12 @@ class CommandListener extends Thread {
 	 * スレッド停止用メソッド<br>
 	 * スレッド作成元のスレッドで呼ぶように作ること。
 	 */
-	public void stopRunning(){
-		loop = false;
+	void stopRunning(){
+		loop = false
 	}
 
 	@Override
-	public void run() {
+	void run() {
 		
 		while(loop) {
 			
