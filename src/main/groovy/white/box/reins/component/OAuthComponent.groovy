@@ -91,7 +91,7 @@ class OAuthComponent {
 			// ブラウザで認証ページを表示
 			WebUtil.viewUrlPage(requestToken.getAuthorizationURL())
 
-			print "Enter the PIN(if aviailable) or just hit enter.[PIN]:"
+			print "Enter the PIN(if available) or just hit enter.[PIN]:"
 			String pin = br.readLine()
 
 			try {

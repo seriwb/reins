@@ -1,13 +1,10 @@
 package reins.dao
 
-import java.text.Format;
-
 import spock.lang.Ignore
-import spock.lang.Shared
 import spock.lang.Specification
 import groovy.sql.Sql;
 import white.box.reins.dao.ListDataDao
-import white.box.reins.model.ListData;
+import white.box.reins.model.ListData
 
 class ListDataDaoSpec extends Specification {
 
@@ -43,7 +40,7 @@ class ListDataDaoSpec extends Specification {
 		ListData listData = new ListData(
 						screenName:"name",
 						counterStatus:0,
-						url : "http://hoge",
+						imageUrl : "http://hoge",
 						attribute : "twitter",
 						statusId:1234567890,
 						tweetDate:new Date())
@@ -62,12 +59,11 @@ class ListDataDaoSpec extends Specification {
 
 		dao.insert(listId, listData)
 
-		String tablename = "list_$listId"
 		def result = db.firstRow("""select * from list_$listId where id = 1""".toString())
 
 		expect:
 		1                      == result.id
-		listData.url           == result.url
+		listData.imageUrl      == result.imageUrl
 		listData.screenName    == result.screenName
 		listData.counterStatus == result.counterStatus
 		listData.attribute     == result.attribute

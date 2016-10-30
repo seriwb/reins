@@ -39,14 +39,16 @@ class Main {
 			oauth.authorize(twitter)
 		}
 
-		TwitterWatcher tw = new TwitterWatcher(config, twitter)
-		ImageGetter ig = new ImageGetter(config)
+		def tw = new TwitterWatcher(config, twitter)
+		def ig = new ImageGetter(config)
+		def cl = new CommandListener(config)
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			void run () {
 				tw.stopRunning()
 				ig.stopRunning()
-
+				cl.stopRunning()
+				//TODO:スレッドの終了を監視するしてストップしたら終了
 				println "exit."
 			}
 		})
@@ -55,6 +57,7 @@ class Main {
 		try {
 			tw.start()
 			ig.start()
+			cl.start()
 		} catch (e) {
 			log.error("Thread Error!", e)
 		}
