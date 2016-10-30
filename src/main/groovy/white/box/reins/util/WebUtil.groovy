@@ -62,7 +62,11 @@ abstract class WebUtil {
 	 * @param filepath 画像保存先ファイル
 	 */
 	static void download(String url, File filepath) {
-		URL website = new URL(url)
+		String imageUrl = url
+		if (url =~ """pbs.twimg.com""") {
+			imageUrl = url.concat(":large")
+		}
+		URL website = new URL(imageUrl)
 		ReadableByteChannel rbc = Channels.newChannel(website.openStream())
 		FileOutputStream fos = new FileOutputStream(filepath)
 		fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE)
