@@ -37,6 +37,8 @@ class ImageGetter extends Thread {
 		}
 	}
 
+	final def IMAGE_SET = ["png", "jpg", "bmp", "jpeg", "gif"]
+
 	/**
 	 * スレッド停止用メソッド<br>
 	 * スレッド作成元のスレッドで呼ぶように作ること。
@@ -99,34 +101,36 @@ class ImageGetter extends Thread {
 								]
 							}.each { imageInfo ->
 
-								log.info "imageInfo:$imageInfo"
-
 								// ユーザー単位の画像フォルダを作成する
 								File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
 								File filepath = createFileName(dirpath, imageInfo)
 
-								// ファイル名をDBに保存
-								listDataDao.updateImageName(
-										listInfo.listId, imageInfo.id, filepath.getName())
-
 								if (imageInfo.attribute != "pixiv") {
-									try {
-										// Retweetをダウンロードするかの判定
-										if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
-											WebUtil.download(imageInfo.imageUrl, filepath)
-										} else if (StringUtil.isBlank(imageInfo.retweetUser)) {
-											WebUtil.download(imageInfo.imageUrl, filepath)
+									// 拡張子が画像ファイルのものを対象にする
+									if (filepath != null) {
+
+										log.info "imageInfo:$imageInfo"
+
+										// ファイル名をDBに保存
+										listDataDao.updateImageName(
+												listInfo.listId, imageInfo.id, filepath.getName())
+										try {
+											// Retweetをダウンロードするかの判定
+											if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
+												WebUtil.download(imageInfo.imageUrl, filepath)
+											} else if (StringUtil.isBlank(imageInfo.retweetUser)) {
+												WebUtil.download(imageInfo.imageUrl, filepath)
+											}
+											// 終了を設定
+											imageInfo.counterStatus = -1
+										} catch (e) {
+											// 施行回数を上げる
+											imageInfo.counterStatus += 1
+											log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
+											log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
 										}
-										// 終了を設定
-										imageInfo.counterStatus = -1
-									} catch (e) {
-										// 施行回数を上げる
-										imageInfo.counterStatus += 1
-										log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
-										log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
 									}
 								}
-
 								listDataDao.updateStatus(listInfo.listId, imageInfo)
 							}
 						}
@@ -194,6 +198,9 @@ class ImageGetter extends Thread {
 		String identifer = strings[strings.length - 1]
 		String namestr = "_${imageInfo.screenName}.$identifer"
 
+		if (!IMAGE_SET.contains(identifer) || identifer.length() > 5) {
+			return null
+		}
 		File filepath = new File(dirpath, datestr.concat(namestr))
 
 		// 重複していたら_9までファイル名を別のものを作成する（TODO:それ以上は無視）
