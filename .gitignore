@@ -10,3 +10,7 @@
 /tmp
 key.data
 /twitter4j.properties
+/.README.md.html
+.idea
+classes
+.DS_Store

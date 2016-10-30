@@ -4,6 +4,7 @@ import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import white.box.reins.dao.ListDataDao
 import white.box.reins.dao.ListMstDao
+import white.box.reins.util.StringUtil
 import white.box.reins.util.WebUtil
 
 /**
@@ -21,7 +22,13 @@ class ImageGetter extends Thread {
 
 	private boolean loop = true
 
-	ImageGetter(def config) {
+	/** リストマスタ参照用のDAO */
+	ListMstDao listMstDao = null
+
+	/** リストデータの作成に利用するDAO */
+	ListDataDao listDataDao = null
+
+	ImageGetter(config) {
 		this.config = config
 
 		dirpath = this.config.reins.image.dir
@@ -34,17 +41,17 @@ class ImageGetter extends Thread {
 	 * スレッド停止用メソッド<br>
 	 * スレッド作成元のスレッドで呼ぶように作ること。
 	 */
-	public void stopRunning(){
-		loop = false;
+	void stopRunning(){
+		loop = false
 	}
 
 
 	@Override
-	public void run() {
+	void run() {
 
 		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
-		def listMstDao = new ListMstDao(db)
-		def listDataDao = new ListDataDao(db)
+		listMstDao = new ListMstDao(db)
+		listDataDao = new ListDataDao(db)
 
 		// スリープ
 		int waittime = config.reins.loop.waittime
@@ -80,31 +87,42 @@ class ImageGetter extends Thread {
 						}
 						else {
 							imageInfos.collect {
+
 								[
 									id : it.get("id"),
-									url : it.get("url"),
+									imageUrl : it.get("imageUrl"),
 									screenName : it.get("screenName"),
 									counterStatus : it.get("counterStatus"),
 									statusId : it.get("statusId"),
-									tweetDate : it.get("tweetDate")
+									tweetDate : it.get("tweetDate"),
+									retweetUser : it.get("retweetUser")
 								]
 							}.each { imageInfo ->
 
-								println "imageInfo:$imageInfo"
+								log.info "imageInfo:$imageInfo"
 
 								// ユーザー単位の画像フォルダを作成する
-								File dirpath = mkdir(listInfo.listName, imageInfo.screenName)
+								File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
 								File filepath = createFileName(dirpath, imageInfo)
 
-								if (attribute != "pixiv") {
+								// ファイル名をDBに保存
+								listDataDao.updateImageName(
+										listInfo.listId, imageInfo.id, filepath.getName())
+
+								if (imageInfo.attribute != "pixiv") {
 									try {
-										WebUtil.download(imageInfo.url, filepath)
+										// Retweetをダウンロードするかの判定
+										if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
+											WebUtil.download(imageInfo.imageUrl, filepath)
+										} else if (StringUtil.isBlank(imageInfo.retweetUser)) {
+											WebUtil.download(imageInfo.imageUrl, filepath)
+										}
 										// 終了を設定
 										imageInfo.counterStatus = -1
 									} catch (e) {
 										// 施行回数を上げる
 										imageInfo.counterStatus += 1
-										log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.url}"
+										log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
 										log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
 									}
 								}
@@ -118,7 +136,7 @@ class ImageGetter extends Thread {
 
 			// 1周したら結構待つ
 			log.info "image download completed. wait ${waittime * 300 / 1000}s until next download process."
-			Thread.sleep(waittime * 300)
+			sleep(waittime * 300)
 		}
 	}
 
@@ -127,18 +145,32 @@ class ImageGetter extends Thread {
 	 *
 	 * @param list_name リスト名
 	 * @param screen_name Twitterユーザ名
-	 * @retrun ディレクトリパス
+	 * @param retweet_user Retweetしたユーザ名
+	 * @return ディレクトリパス
 	 */
-	File mkdir(String list_name, String screen_name) {
+	File mkdir(String list_name, String screen_name, String retweet_user) {
 
+		String targetDirPath = null
 		File targetDir = null
 
 		if (list_name == null || list_name.empty) {
-			targetDir = new File("${dirpath}/${screen_name}")
+			// Retweetの場合にディレクトリを分けるかどうかを判定
+			if (!config.reins.retweet.separate || retweet_user == null || retweet_user.empty) {
+				targetDirPath = "${dirpath}/${screen_name}"
+			}
+			else {
+				targetDirPath = "${dirpath}/${retweet_user}/rt/${screen_name}"
+			}
 		} else {
-			targetDir = new File("${dirpath}/${list_name}/${screen_name}")
+			if (!config.reins.retweet.separate || retweet_user == null || retweet_user.empty) {
+				targetDirPath = "${dirpath}/${list_name}/${screen_name}"
+			}
+			else {
+				targetDirPath = "${dirpath}/${list_name}/${retweet_user}/rt/${screen_name}"
+			}
 		}
 
+		targetDir = new File(targetDirPath)
 		if (!targetDir.exists()) {
 			// println targetDir.toURI().toString()
 			targetDir.mkdirs()
@@ -158,13 +190,13 @@ class ImageGetter extends Thread {
 	File createFileName(File dirpath, Map imageInfo) {
 
 		String datestr = imageInfo.tweetDate.format("yyyyMMdd-HHmmss")
-		String[] strings = (imageInfo.url).split('\\.')
+		String[] strings = (imageInfo.imageUrl).split('\\.')
 		String identifer = strings[strings.length - 1]
 		String namestr = "_${imageInfo.screenName}.$identifer"
 
 		File filepath = new File(dirpath, datestr.concat(namestr))
 
-		// 重複してたら_9までファイル名を別のものを作成する（TODO:それ以上は無視）
+		// 重複していたら_9までファイル名を別のものを作成する（TODO:それ以上は無視）
 		if (filepath.exists()) {
 			for (int i=2; i<10; i++) {
 				String tempname = "-${i}_${imageInfo.screenName}.$identifer"

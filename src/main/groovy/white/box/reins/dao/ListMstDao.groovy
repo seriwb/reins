@@ -16,12 +16,11 @@ class ListMstDao {
 	}
 
 	def create() {
-		db.execute("""
-create table list_mst(
-		id bigint auto_increment not null primary key,
-		listId bigint unique,
-		listName varchar2(200),
-		sinceId bigint)""")
+		db.execute("""create table if not exists list_mst(
+					| id bigint auto_increment not null primary key,
+					| listId bigint unique,
+					| listName varchar2(200),
+					| sinceId bigint)""".stripMargin())
 	}
 
 	def insert(long listId, String listname) {

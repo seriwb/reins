@@ -20,12 +20,12 @@ import white.box.reins.dao.ReinsMstDao
  * @author seri
  */
 @Slf4j
-public class BootStrap {
+class BootStrap {
 
 	def init = { config ->
 		// 1---------- 設定値の初期化 ---------------
 		config = new ConfigSlurper().parse(
-						new File('./conf/Config.groovy').toURI().toURL())
+				new File('./conf/Config.groovy').toURI().toURL())
 
 		// 2---------- DBの初期化 ---------------
 		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
@@ -48,7 +48,7 @@ public class BootStrap {
 		db.close()
 
 		// 3---------- Twitter API利用のキー情報を取得 ---------------
-		InputStream  keydata = (BootStrap.class).getResourceAsStream("key.data");
+		InputStream keydata = (BootStrap.class).getResourceAsStream("key.data")
 		byte[] decoded = null
 		keydata.eachLine { decoded = it.decodeBase64() }
 

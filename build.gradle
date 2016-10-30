@@ -3,21 +3,16 @@ apply plugin: 'eclipse'
 //apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
-version = '0.2.1'
+version = '0.3'
 
 repositories {
 	mavenCentral()
-	maven {
-		// for HTTP Builder
-		url "http://repository.codehaus.org"
-		url "http://snapshots.repository.codehaus.org"
-	}
 }
 
 dependencies {
-	compile ('org.codehaus.groovy:groovy-all:2.3.3') {transitive = false}
+	compile ('org.codehaus.groovy:groovy-all:2.4.7') {transitive = false}
 	compile ('org.twitter4j:twitter4j-core:[4.0,)') {transitive = false}
-//	compile 'org.codehaus.groovy.modules.http-builder:http-builder:[0.7,)'
+	compile ('org.codehaus.groovy.modules.http-builder:http-builder:0.7.1') {transitive = false}
 //	compile 'org.hibernate:hibernate-gradle-plugin:4.3.6.Final'
 	compile ('org.apache.logging.log4j:log4j-core:2.0.1') {transitive = false}
 	compile ('org.apache.logging.log4j:log4j-api:2.0.1') {transitive = false}

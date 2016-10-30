@@ -34,6 +34,11 @@ class TwitterWatcher extends Thread {
 
 	private boolean loop = true
 
+	/** リストマスタ参照用のDAO */
+	ListMstDao listMstDao = null
+
+	/** リストデータの作成に利用するDAO */
+	ListDataDao listDataDao = null
 
 	/**
 	 * コンストラクタ<br>
@@ -42,7 +47,7 @@ class TwitterWatcher extends Thread {
 	 * @param config Config値
 	 * @param twitter Twitterインスタンス
 	 */
-	TwitterWatcher(def config, Twitter twitter) {
+	TwitterWatcher(config, Twitter twitter) {
 		this.config = config
 		this.twitter = twitter
 
@@ -55,29 +60,29 @@ class TwitterWatcher extends Thread {
 	 * スレッド停止用メソッド<br>
 	 * スレッド作成元のスレッドで終了時に呼ぶこと。
 	 */
-	public void stopRunning(){
-		loop = false;
+	void stopRunning(){
+		loop = false
 	}
 
 	@Override
-	public void run() {
+	void run() {
 
 		// 先にユーザ情報を取り、これを使いまわす
 		def userinfo = twitter.verifyCredentials()
 
 		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
-		def listMstDao = new ListMstDao(db)
-		def listDataDao = new ListDataDao(db)
+		listMstDao = new ListMstDao(db)
+		listDataDao = new ListDataDao(db)
 
 		while(loop) {
 			try {
 				// 画像URLの取得処理
-				loopImageGetTask(userinfo, listMstDao, listDataDao)
+				loopImageGetTask(userinfo)
 			}
 			catch (TwitterException te) {
 				log.error("Twitter service or network is unavailable.", te)
 				log.info "Twitter service or network is unavailable. wait ${15} minutes until next search."
-				Thread.sleep(15 * 60 * 1000)
+				sleep(15 * 60 * 1000)
 			}
 		}
 	}
@@ -87,10 +92,8 @@ class TwitterWatcher extends Thread {
 	 * 指定されたTwitterアカウントのリストから画像のURLを取得し、DBに保存する
 	 *
 	 * @param userinfo Twitterのユーザ情報。再認証後は再取得の必要がある。
-	 * @param listMstDao リストマスタ参照用のDAO
-	 * @param listDataDao リストデータの作成に利用するDAO
 	 */
-	protected void loopImageGetTask(def userinfo, def listMstDao, def listDataDao)
+	protected void loopImageGetTask(userinfo)
 	throws TwitterException {
 
 		// 認証ユーザが持つリストを取得
@@ -152,7 +155,7 @@ class TwitterWatcher extends Thread {
 				paging = new Paging(1, TWEET_MAX_COUNT)
 			}
 
-			println "[check]$listname current since_id:" + currentSinceId
+			log.info("[check]$listname current since_id:" + currentSinceId)
 
 			// 最大200(TWEET_MAX_COUNT)×10(paging_max_count)ツイートを取得し、チェックする
 			for (int i=1; i <= paging_max_count; i++) {
@@ -164,7 +167,7 @@ class TwitterWatcher extends Thread {
 				}
 
 				for (Status status : statuses) {
-					registerImageUrl(listId, status, listDataDao)
+					registerImageUrl(listId, status)
 				}
 
 				if (i==1) {
@@ -174,12 +177,12 @@ class TwitterWatcher extends Thread {
 			}
 
 			// リストごとにちょっと待つ
-			Thread.sleep(WAIT_TIME * 10)
+			sleep(WAIT_TIME * 10)
 		}
 
 		// 1周したら結構待つ
 		log.info "list check completed. wait ${WAIT_TIME * 600 / 1000}s until next search."
-		Thread.sleep(WAIT_TIME * 600)
+		sleep(WAIT_TIME * 600)
 	}
 
 
@@ -190,53 +193,51 @@ class TwitterWatcher extends Thread {
 	 *
 	 * @param listId チェック対象のリストのID
 	 * @param status Tweet情報
-	 * @param listDataDao list_${listId}のDAO
 	 */
-	protected void registerImageUrl(
-					long listId,
-					Status status,
-					def listDataDao) {
+	protected void registerImageUrl(long listId, Status status) {
 
 		// Tweetしたユーザー名
-		def screenName = null
-		if (status.getRetweetedStatus() != null) {
+		String screenName = null
+		// Retweetしたユーザ名
+		String retweetUser = null
+
+		if (status.getRetweetedStatus() != null && config.reins.retweet.target) {
 			// RTの場合はRT元のユーザー名を格納する
 			screenName = status.getRetweetedStatus().getUser().getScreenName()
+			retweetUser = status.getUser().getScreenName()
 		}
-		else {
+		else if (status.getRetweetedStatus() == null) {
 			screenName = status.getUser().getScreenName()
+		} else {
+			return
 		}
 
 		// DB登録時の共通値設定
-		ListData listdata = new ListData(
-						screenName : screenName,
-						counterStatus : 0,
-						statusId : status.getId(),
-						tweetDate : status.getCreatedAt())
+		ListData listData = new ListData(
+				statusId : status.getId(),
+				tweetDate : status.getCreatedAt(),
+				screenName : screenName,
+				retweetUser : retweetUser,
+				counterStatus : 0)
 
 		// media_urlならTwitter公式、それ以外は別形式で保存
-		def mediaList = status.getMediaEntities()
-		mediaList.each {
-			listdata.url = it.getMediaURL()
-			listdata.attribute = "twitter"
-
-			listDataDao.insert(listId, listdata)
+		status.getExtendedMediaEntities().each {
+			listData.imageUrl = it.getMediaURL()
+			listData.attribute = "twitter"
+			listDataDao.insert(listId, listData)
 		}
 		// ----------■公式以外のリンクを取得する場合はここに書く--------------
-		def urlsList = status.getURLEntities()
-		urlsList.each {
+		status.getURLEntities().each {
 			// pixivリンクの保存
 			if(it.getExpandedURL() =~ """www.pixiv.net/member_illust.php""") {
-				listdata.url = it.getExpandedURL()
-				listdata.attribute = "pixiv"
-				listDataDao.insert(listId, listdata)
+				listData.attribute = "pixiv"
 			}
 			// gifの保存
 			else if (it.getExpandedURL() =~ /.gif$/) {
-				listdata.url = it.getExpandedURL()
-				listdata.attribute = "gif"
-				listDataDao.insert(listId, listdata)
+				listData.attribute = "gif"
 			}
+			listData.imageUrl = it.getExpandedURL()
+			listDataDao.insert(listId, listData)
 		}
 		// ---------------------------------------------------------------------
 	}
