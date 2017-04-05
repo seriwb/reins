@@ -1,3 +1,6 @@
+[![CircleCI](https://circleci.com/gh/seriwb/reins.svg?style=shield)](https://circleci.com/gh/seriwb/reins)
+[![Coverage Status](https://coveralls.io/repos/github/seriwb/reins/badge.svg)](https://coveralls.io/github/seriwb/reins)
+
 # reins
 
 Twitterアカウントのリストのタイムラインから画像を含んだツイートの情報を取得し、
@@ -109,7 +112,7 @@ Gradleのbuildタスクを実施してください。
 
 - JDK : 1.8.0_112
 - Groovy : 2.4.7
-- Gradle : 3.1
+- Gradle : 3.4.1
 
 
 
