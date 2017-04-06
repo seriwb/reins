@@ -1,4 +1,4 @@
-package white.box.reins
+package box.white.reins
 
 abstract class ReinsConstants {
 

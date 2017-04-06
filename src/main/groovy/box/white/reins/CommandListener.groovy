@@ -1,11 +1,11 @@
-package white.box.reins
+package box.white.reins
 
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
-import white.box.reins.dao.ListDataDao
-import white.box.reins.util.StringUtil
-import white.box.reins.util.WebUtil
+import box.white.reins.dao.ListDataDao
+import box.white.reins.util.StringUtil
+import box.white.reins.util.WebUtil
 
 /**
  * reinsコマンドを処理するクラス。<br>
@@ -27,7 +27,7 @@ class CommandListener extends Thread {
 	final Set COMMAND_SETS = ["logout", "url", "refresh", "quit", "stop"]
 
 	/** ループ処理の継続判定用 */
-	private boolean loop = true
+	private volatile boolean loop = true
 
 	ListDataDao listDataDao = null
 

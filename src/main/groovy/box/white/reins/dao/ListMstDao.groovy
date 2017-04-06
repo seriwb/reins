@@ -1,4 +1,4 @@
-package white.box.reins.dao
+package box.white.reins.dao
 
 import groovy.sql.Sql
 

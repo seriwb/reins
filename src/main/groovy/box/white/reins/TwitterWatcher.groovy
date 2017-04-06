@@ -1,4 +1,4 @@
-package white.box.reins
+package box.white.reins
 
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
@@ -10,10 +10,10 @@ import twitter4j.TwitterException
 import twitter4j.TwitterFactory
 import twitter4j.UserList
 import twitter4j.conf.ConfigurationBuilder
-import white.box.reins.component.OAuthComponent
-import white.box.reins.dao.ListDataDao
-import white.box.reins.dao.ListMstDao
-import white.box.reins.model.ListData
+import box.white.reins.component.OAuthComponent
+import box.white.reins.dao.ListDataDao
+import box.white.reins.dao.ListMstDao
+import box.white.reins.model.ListData
 
 /**
  * Twitterアカウントのリストから定期的に画像のURLを取得する。<br>
@@ -32,7 +32,7 @@ class TwitterWatcher extends Thread {
 	/** sleepのベース時間：リスト毎は短め、チェック後は長め */
 	final int WAIT_TIME
 
-	private boolean loop = true
+	private volatile boolean loop = true
 
 	/** リストマスタ参照用のDAO */
 	ListMstDao listMstDao = null

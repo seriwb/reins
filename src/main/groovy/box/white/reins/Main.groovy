@@ -1,10 +1,10 @@
-package white.box.reins
+package box.white.reins
 
 import groovy.util.logging.Slf4j
 import twitter4j.Twitter
 import twitter4j.TwitterFactory
 import twitter4j.conf.ConfigurationBuilder
-import white.box.reins.component.OAuthComponent
+import box.white.reins.component.OAuthComponent
 
 /**
  * 実行クラス

@@ -10,9 +10,9 @@ import spock.lang.Specification
 import twitter4j.Twitter
 import twitter4j.TwitterFactory
 import twitter4j.auth.AccessToken
-import white.box.reins.ReinsConstants
-import white.box.reins.component.OAuthComponent
-import white.box.reins.dao.ReinsMstDao
+import box.white.reins.ReinsConstants
+import box.white.reins.component.OAuthComponent
+import box.white.reins.dao.ReinsMstDao
 
 @Slf4j
 class OAuthComponentSpec extends Specification {

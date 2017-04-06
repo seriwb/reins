@@ -75,7 +75,7 @@ compileJava {
 //			'Implementation-Title': 'reins',
 //			'Implementation-Version': version,
 //			'Class-Path': ". ".concat(manifestClasspath),
-//			'Main-Class' : 'white.box.reins.Main'
+//			'Main-Class' : 'box.white.reins.Main'
 //		)
 //	}
 //	from (configurations.compile.resolve().collect { it.isDirectory() ? it : fileTree(it) })
@@ -89,7 +89,7 @@ jar {
 		attributes (
 			'Implementation-Title': 'reins',
 			'Implementation-Version': version,
-			'Main-Class' : 'white.box.reins.Main'
+			'Main-Class' : 'box.white.reins.Main'
 		)
 	}
 }
@@ -98,7 +98,7 @@ jar {
 //	standardInput = System.in
 //}
 //
-//mainClassName = 'white.box.reins.Main'
+//mainClassName = 'box.white.reins.Main'
 
 jacocoTestReport {
 	reports {
