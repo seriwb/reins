@@ -1,10 +1,10 @@
-package white.box.reins
+package box.white.reins
 
-import static white.box.reins.util.StringUtil.*
+import static box.white.reins.util.StringUtil.*
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
-import white.box.reins.dao.ListMstDao
-import white.box.reins.dao.ReinsMstDao
+import box.white.reins.dao.ListMstDao
+import box.white.reins.dao.ReinsMstDao
 
 /**
  * 初期化用クラス<br>

@@ -7,8 +7,8 @@ import twitter4j.Status
 import twitter4j.Twitter
 import twitter4j.TwitterFactory
 import twitter4j.conf.ConfigurationBuilder
-import white.box.reins.ImageGetter
-import white.box.reins.util.DateUtil
+import box.white.reins.ImageGetter
+import box.white.reins.util.DateUtil
 
 import java.nio.file.Files
 import java.nio.file.Paths

@@ -1,11 +1,11 @@
-package white.box.reins
+package box.white.reins
 
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
-import white.box.reins.dao.ListDataDao
-import white.box.reins.dao.ListMstDao
-import white.box.reins.util.StringUtil
-import white.box.reins.util.WebUtil
+import box.white.reins.dao.ListDataDao
+import box.white.reins.dao.ListMstDao
+import box.white.reins.util.StringUtil
+import box.white.reins.util.WebUtil
 
 /**
  * DB内のデータから画像をダウンロードする。<br>
@@ -20,7 +20,7 @@ class ImageGetter extends Thread {
 	def config = null			// 設定値
 	String dirpath = null		// フォルダ作成先パス
 
-	private boolean loop = true
+	private volatile boolean loop = true
 
 	/** リストマスタ参照用のDAO */
 	ListMstDao listMstDao = null

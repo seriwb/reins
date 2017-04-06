@@ -1,4 +1,4 @@
-package white.box.reins
+package box.white.reins
 
 /**
  * 定期的にリストテーブルのサイズを確認し、一定サイズになっていたらレコード削除を実施する。

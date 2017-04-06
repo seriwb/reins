@@ -1,4 +1,4 @@
-package white.box.reins.model
+package box.white.reins.model
 
 class ListData {
 

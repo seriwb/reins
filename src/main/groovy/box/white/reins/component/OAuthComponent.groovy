@@ -1,15 +1,15 @@
-package white.box.reins.component
+package box.white.reins.component
 
-import static white.box.reins.util.StringUtil.*
+import static box.white.reins.util.StringUtil.*
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import twitter4j.Twitter
 import twitter4j.TwitterException
 import twitter4j.auth.AccessToken
 import twitter4j.auth.RequestToken
-import white.box.reins.ReinsConstants
-import white.box.reins.dao.ReinsMstDao
-import white.box.reins.util.WebUtil
+import box.white.reins.ReinsConstants
+import box.white.reins.dao.ReinsMstDao
+import box.white.reins.util.WebUtil
 
 /**
  * OAuth認証に関わる処理を行う。

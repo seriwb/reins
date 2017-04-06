@@ -1,8 +1,8 @@
-package white.box.reins.util
+package box.white.reins.util
 
 import groovy.sql.Sql
 
-import white.box.reins.ReinsConstants
+import box.white.reins.ReinsConstants
 
 /**
  * DBアクセスの共通化クラス

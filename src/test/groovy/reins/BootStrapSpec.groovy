@@ -4,7 +4,7 @@ import java.awt.Desktop
 
 import spock.lang.Ignore
 import spock.lang.Specification
-import white.box.reins.BootStrap
+import box.white.reins.BootStrap
 
 class BootStrapSpec extends Specification {
 

@@ -1,4 +1,4 @@
-package white.box.reins.util
+package box.white.reins.util
 
 import twitter4j.Query
 import twitter4j.Twitter

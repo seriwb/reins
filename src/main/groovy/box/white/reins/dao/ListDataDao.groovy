@@ -1,8 +1,8 @@
-package white.box.reins.dao
+package box.white.reins.dao
 
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql;
-import white.box.reins.model.ListData
+import box.white.reins.model.ListData
 
 /**
  * list_<リストID>のテーブルを操作するDAO

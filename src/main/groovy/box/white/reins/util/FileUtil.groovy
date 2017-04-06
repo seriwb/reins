@@ -1,4 +1,4 @@
-package white.box.reins.util
+package box.white.reins.util
 
 /**
  * @author seri

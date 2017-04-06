@@ -3,8 +3,8 @@ package reins.dao
 import spock.lang.Ignore
 import spock.lang.Specification
 import groovy.sql.Sql;
-import white.box.reins.dao.ListDataDao
-import white.box.reins.model.ListData
+import box.white.reins.dao.ListDataDao
+import box.white.reins.model.ListData
 
 class ListDataDaoSpec extends Specification {
 
