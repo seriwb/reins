@@ -1,6 +1,10 @@
 
 # Reinsの機能
 
+## Twitter画像の自動ダウンロード
+認証したTwitterアカウントのリスト内のツイートから、画像を含んだツイートの情報を取得し、
+定期的に画像をダウンロードして保存します。
+
 ## OAuthでのクライアント認証に対応
 Web認証実施後に表示されるPINをプログラムに渡すことでreinsの利用が可能です。
 
@@ -25,9 +29,9 @@ Twitterから情報取得時にネットワークエラーが発生した場合�
 0. [Java SE 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)をインストール。
 1. [releases](https://github.com/seriwb/reins/releases/latest)からzipファイルを取得し、適当な場所に展開。
 2. 必要に応じてconf/Config.groovyの値を調整。
-3. コンソールからreins-0.3.jarがある場所まで移動し、以下のコマンドを実行。
+3. コンソールからreins-0.3.1.jarがある場所まで移動し、以下のコマンドを実行。
 ```
-java -jar reins-0.3.jar
+java -jar reins-0.3.1.jar
 ```
 
 
@@ -38,7 +42,7 @@ Reinsの動作設定は```conf/Config.groovy```を編集することで変更が
 以下の内容が変更可能です。
 
 - 画像の保存場所：reins.image.dir
-- Tweetの1回の取得数（MAX:200）：reins.tweet.maxcount
+- Tweetの1回の取得数（MAX:100）：reins.tweet.maxcount
 - 繰り返しのWait間隔ベース（ms）：reins.loop.waittime
 - Retweetの取得：reins.retweet.target
 - Retweetのディレクトリを別ける：reins.retweet.separate
@@ -50,16 +54,16 @@ Reinsの動作設定は```conf/Config.groovy```を編集することで変更が
 // 画像の保管場所
 reins.image.dir = "./dir"
 
-// Tweetの1回の取得数（MAX:200）
-reins.tweet.maxcount = 200
+// Tweetの1回の取得数（MAX:100）
+reins.tweet.maxcount = 100
 
-// 繰り返しのWait間隔ベース（ms）
-reins.loop.waittime = 1000
+// 繰り返しのWait間隔ベース（s）：画像取得はこの時間の半分
+reins.loop.waittime = 600
 
-// Retweetの取得
+// Retweetの取得（取得する：true/取得しない：false）
 reins.retweet.target = true
 
-// Retweetのディレクトリを分離
+// Retweetのディレクトリを分離（分離する：true/分離しない：false）
 reins.retweet.separate = true
 ```
 
@@ -80,7 +84,7 @@ reins.retweet.separate = true
 reinsがTwitterから情報を取得する間隔の基準値になります。  
 特に理由がない限り変更の必要はありません。
 
-TwitterのRate Limitによく引っかかってしまう場合は、デフォルト値（1000）よりも値を増やしてみてください。
+TwitterのRate Limitによく引っかかってしまう場合は、デフォルト値（600s=10m）よりも値を増やしてみてください。
 
 
 #### 4. reins.retweet.target

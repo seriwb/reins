@@ -18,18 +18,24 @@ import box.white.reins.util.WebUtil
  * @author seri
  */
 @Slf4j
-class CommandListener extends Thread {
+class CommandListener extends ManagedThread {
 
 	/** システム設定値 */
 	def config = null
 
 	/** コマンドクラス */
-	final Set COMMAND_SETS = ["logout", "url", "refresh", "quit", "stop"]
+	final Set<String> COMMAND_SETS = [
+		"logout",
+		"url",
+		"refresh",
+		"quit",
+		"stop",
+		"help"
+	]
 
-	/** ループ処理の継続判定用 */
-	private volatile boolean loop = true
-
+	Sql db = null
 	ListDataDao listDataDao = null
+	BufferedReader br = null
 
 	/**
 	 * コンストラクタ<br>
@@ -38,62 +44,65 @@ class CommandListener extends Thread {
 	 * @param config システム設定値
 	 */
 	CommandListener(config) {
-
+		super()
 		this.config = config
 		// TODO:コマンドクラスのインスタンスを生成してMapに格納する
 	}
 
-	/**
-	 * スレッド停止用メソッド<br>
-	 * スレッド作成元のスレッドで呼ぶように作ること。
-	 */
-	void stopRunning() {
-		loop = false
+	@Override
+	void preProcess() {
+		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
+		listDataDao = new ListDataDao(db)
+		br = new BufferedReader(new InputStreamReader(System.in))
 	}
 
 	@Override
-	void run() {
+	void mainProcess() {
+		String command = br.readLine()
+		if (StringUtil.isBlank(command)) {
+			return
+		}
+		String[] commandInfo = command.split(/\s/)
 
-		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
-		listDataDao = new ListDataDao(db)
-
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in))
-
-		while (loop) {
-
-			String command = br.readLine()
-			if (StringUtil.isBlank(command)) {
-				continue
-			}
-			String[] commandInfo = command.split(/\s/)
-
-			if (commandInfo[0] == "url") {
-				try {
-
-					Set<String> imageUrls = null
-					if (commandInfo.length > 1 && commandInfo[1] != "-o") {
-						// 画像ファイルの解析
-						imageUrls = createImageUrl(commandInfo[1])
-					} else if (commandInfo.length > 2 && commandInfo[1] == "-o") {
-						imageUrls = createImageUrl(commandInfo[2])
-						imageUrls.each {
-							WebUtil.viewUrlPage(it)
-						}
-					}
-					// コンソール出力
-					imageUrls.each {
-						println(it)
-					}
-
-				} catch (e) {
-					log.error(e)
-				}
-			}
+		if (commandInfo[0] == "url") {
+			urlCommand(commandInfo)
+		}
+	}
+	
+	@Override
+	void postProcess() {
+		db = null
+		listDataDao = null
+		if (br != null) {
+			br.close()
 		}
 	}
 
-	Set<String> createImageUrl(String imageName) {
+	/**
+	 * @param commandInfo
+	 */
+	protected void urlCommand(String[] commandInfo) {
+		try {
+			Set<String> imageUrls = null
+			if (commandInfo.length > 1 && commandInfo[1] != "-o") {
+				// 画像ファイルの解析
+				imageUrls = createImageUrl(commandInfo[1])
+			} else if (commandInfo.length > 2 && commandInfo[1] == "-o") {
+				imageUrls = createImageUrl(commandInfo[2])
+				imageUrls.each { WebUtil.viewUrlPage(it) }
+			}
+			// コンソール出力
+			imageUrls.each { println(it) }
+		} catch (e) {
+			log.error(e)
+		}
+	}
 
+	/**
+	 * @param imageName
+	 * @return
+	 */
+	Set<String> createImageUrl(String imageName) {
 		if (StringUtil.isBlank(imageName)) {
 			throw new IllegalArgumentException("画像ファイル名が指定されていません")
 		}

@@ -26,7 +26,7 @@ class BootStrapSpec extends Specification {
 	def keydataの取得() {
 
 		setup:
-		File keydata = new File("src/main/resources/white/box/reins/key.data")
+		File keydata = new File("src/main/resources/box/white/reins/key.data")
 		if (keydata.exists()) {
 			println "あるよ！"
 		}

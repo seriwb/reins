@@ -139,8 +139,8 @@ class ImageGetter extends Thread {
 			}
 
 			// 1周したら結構待つ
-			log.info "image download completed. wait ${waittime * 300 / 1000}s until next download process."
-			sleep(waittime * 300)
+			log.info "image download completed. wait ${waittime / 2}s until next download process."
+			sleep(waittime * 500)
 		}
 	}
 
