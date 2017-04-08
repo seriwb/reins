@@ -8,7 +8,7 @@ apply plugin: 'eclipse'
 //apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
-version = '0.3'
+version = '0.3.1'
 
 repositories {
 	mavenCentral()
@@ -49,7 +49,7 @@ compileJava {
 	keymap.put("consumerKey", config.oauth.consumerKey)
 	keymap.put("consumerSecret", config.oauth.consumerSecret)
 
-	File keydataPath = new File("$projectDir/src/main/resources/white/box/reins")
+	File keydataPath = new File("$projectDir/src/main/resources/box/white/reins")
 	if (!keydataPath.exists()) {
 		keydataPath.mkdirs()
 	}

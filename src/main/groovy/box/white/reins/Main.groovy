@@ -31,7 +31,6 @@ class Main {
 		TwitterFactory factory = new TwitterFactory(cb.build())
 		Twitter twitter = factory.getInstance()
 
-
 		def oauth = new OAuthComponent()
 		if (!oauth.isAuthorized(twitter)) {
 
@@ -48,18 +47,15 @@ class Main {
 				tw.stopRunning()
 				ig.stopRunning()
 				cl.stopRunning()
-				//TODO:スレッドの終了を監視するしてストップしたら終了
+				
+				log.info("exit.")
 				println "exit."
 			}
 		})
 
 		// 常駐プログラムの実行
-		try {
-			tw.start()
-			ig.start()
-			cl.start()
-		} catch (e) {
-			log.error("Thread Error!", e)
-		}
+		ThreadManager.execute(tw)
+		ThreadManager.execute(ig)
+		ThreadManager.execute(cl)
 	}
 }

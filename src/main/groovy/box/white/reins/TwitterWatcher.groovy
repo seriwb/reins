@@ -29,6 +29,9 @@ class TwitterWatcher extends Thread {
 	/** 1度に取得要求するTweet数 */
 	final int TWEET_MAX_COUNT
 
+	/** Tweetをたどるページングの回数 */
+	final int PAGING_MAX_COUNT = 30
+
 	/** sleepのベース時間：リスト毎は短め、チェック後は長め */
 	final int WAIT_TIME
 
@@ -130,7 +133,6 @@ class TwitterWatcher extends Thread {
 
 
 		// リストごとに情報を取得
-		Paging paging = new Paging(1, TWEET_MAX_COUNT)
 		lists.each { list ->
 
 			// list_idでマスタを探し、存在しなければリスト用のテーブルを作成する。
@@ -143,22 +145,18 @@ class TwitterWatcher extends Thread {
 			}
 
 			// 現在チェックしているところまでのsince_idを設定
-			// マスタのsinceIdがnullでなければpagingする
 			long currentSinceId = listMstDao.getSinceId(listId) ?: -1
 
 			// --------------- ツイート取得して解析 -----------------
-			int paging_max_count = 1
+			Paging paging = new Paging(1, TWEET_MAX_COUNT)
 			if (currentSinceId != -1) {
 				paging.sinceId = currentSinceId
-				paging_max_count = 10
-			} else {
-				paging = new Paging(1, TWEET_MAX_COUNT)
 			}
 
 			log.info("[check]$listname current since_id:" + currentSinceId)
 
-			// 最大200(TWEET_MAX_COUNT)×10(paging_max_count)ツイートを取得し、チェックする
-			for (int i=1; i <= paging_max_count; i++) {
+			// 最大(TWEET_MAX_COUNT × PAGING_MAX_COUNT)のツイートを取得し、チェックする
+			for (int i=1; i <= PAGING_MAX_COUNT; i++) {
 				paging.page = i
 				ResponseList<Status> statuses = twitter.getUserListStatuses(listId, paging)
 
@@ -181,8 +179,8 @@ class TwitterWatcher extends Thread {
 		}
 
 		// 1周したら結構待つ
-		log.info "list check completed. wait ${WAIT_TIME * 600 / 1000}s until next search."
-		sleep(WAIT_TIME * 600)
+		log.info "list check completed. wait ${WAIT_TIME}s until next search."
+		sleep(WAIT_TIME * 1000)
 	}
 
 
@@ -221,7 +219,7 @@ class TwitterWatcher extends Thread {
 				counterStatus : 0)
 
 		// media_urlならTwitter公式、それ以外は別形式で保存
-		status.getExtendedMediaEntities().each {
+		status.getMediaEntities().each {
 			listData.imageUrl = it.getMediaURL()
 			listData.attribute = "twitter"
 			listDataDao.insert(listId, listData)
