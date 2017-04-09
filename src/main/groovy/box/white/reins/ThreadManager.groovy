@@ -4,7 +4,7 @@ import groovy.util.logging.Slf4j
 
 @Slf4j
 final class ThreadManager {
-	static def execute(Thread thread) {	// TODO:change to ManagedThread
+	static def execute(ManagedThread thread) {
 		try {
 			thread.start()
 		} catch (e) {

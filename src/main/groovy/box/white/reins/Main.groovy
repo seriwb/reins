@@ -44,11 +44,11 @@ class Main {
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			void run () {
+				log.info("exit.")
 				tw.stopRunning()
 				ig.stopRunning()
 				cl.stopRunning()
 				
-				log.info("exit.")
 				println "exit."
 			}
 		})

@@ -71,11 +71,11 @@ class CommandListener extends ManagedThread {
 	
 	@Override
 	void postProcess() {
-		db = null
-		listDataDao = null
 		if (br != null) {
 			br.close()
 		}
+		listDataDao = null
+		db = null
 	}
 
 	/**
