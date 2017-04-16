@@ -24,6 +24,8 @@ import box.white.reins.model.ListData
 class TwitterWatcher extends ManagedThread {
 
 	def config = null
+
+	/** Twitterインスタンス */
 	Twitter twitter = null
 
 	/** 1度に取得要求するTweet数 */
@@ -49,11 +51,9 @@ class TwitterWatcher extends ManagedThread {
 	 * Config値の設定を行う。
 	 *
 	 * @param config Config値
-	 * @param twitter Twitterインスタンス
 	 */
-	TwitterWatcher(config, Twitter twitter) {
+	TwitterWatcher(config) {
 		this.config = config
-		this.twitter = twitter
 
 		TWEET_MAX_COUNT = config.reins.tweet.maxcount
 		WAIT_TIME = config.reins.loop.waittime
@@ -61,8 +61,26 @@ class TwitterWatcher extends ManagedThread {
 
 	@Override
 	void preProcess() {
+		// このプログラムで利用するTwitterオブジェクトを作成
+		ConfigurationBuilder cb = new ConfigurationBuilder()
+		String consumerKey = config.get("oauth.consumerKey")
+		String consumerSecret = config.get("oauth.consumerSecret")
+		cb.setDebugEnabled(true)
+			.setOAuthConsumerKey(consumerKey)
+			.setOAuthConsumerSecret(consumerSecret)
+		TwitterFactory factory = new TwitterFactory(cb.build())
+		Twitter twitter = factory.getInstance()
+
+		def oauth = new OAuthComponent()
+		if (!oauth.isAuthorized(twitter)) {
+
+			twitter = factory.getInstance()
+			oauth.authorize(twitter)
+		}
+
 		// 先にユーザ情報を取り、これを使いまわす
 		userinfo = twitter.verifyCredentials()
+		this.twitter = twitter
 
 		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		listMstDao = new ListMstDao(db)
@@ -73,7 +91,7 @@ class TwitterWatcher extends ManagedThread {
 	void mainProcess() {
 		try {
 			// 画像URLの取得処理
-			loopImageGetTask(userinfo)
+			loopImageGetTask()
 		}
 		catch (TwitterException te) {
 			log.error("Twitter service or network is unavailable.", te)
@@ -95,8 +113,7 @@ class TwitterWatcher extends ManagedThread {
 	 *
 	 * @param userinfo Twitterのユーザ情報。再認証後は再取得の必要がある。
 	 */
-	protected void loopImageGetTask(userinfo)
-	throws TwitterException {
+	protected void loopImageGetTask() throws TwitterException {
 
 		// 認証ユーザが持つリストを取得
 		ResponseList<UserList> lists = null
@@ -131,7 +148,7 @@ class TwitterWatcher extends ManagedThread {
 		// TODO:リストのブラック、ホワイトリストを持つようにした場合、そこのチェックタイミングで更新すること
 
 		// リストごとに情報を取得
-		lists.each { analyzeAndSaveTweet }
+		lists.each(analyzeAndSaveTweet)
 
 		// 1周したら結構待つ
 		log.info "list check completed. wait ${WAIT_TIME}s until next search."
