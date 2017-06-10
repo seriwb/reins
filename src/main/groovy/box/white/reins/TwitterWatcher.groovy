@@ -45,7 +45,7 @@ class TwitterWatcher extends ManagedThread {
 
 	def userinfo = null
 	Sql db = null
-	
+
 	/**
 	 * コンストラクタ<br>
 	 * Config値の設定を行う。
@@ -61,31 +61,14 @@ class TwitterWatcher extends ManagedThread {
 
 	@Override
 	void preProcess() {
-		// このプログラムで利用するTwitterオブジェクトを作成
-		ConfigurationBuilder cb = new ConfigurationBuilder()
-		String consumerKey = config.get("oauth.consumerKey")
-		String consumerSecret = config.get("oauth.consumerSecret")
-		cb.setDebugEnabled(true)
-			.setOAuthConsumerKey(consumerKey)
-			.setOAuthConsumerSecret(consumerSecret)
-		TwitterFactory factory = new TwitterFactory(cb.build())
-		Twitter twitter = factory.getInstance()
-
-		def oauth = new OAuthComponent()
-		if (!oauth.isAuthorized(twitter)) {
-
-			twitter = factory.getInstance()
-			oauth.authorize(twitter)
-		}
-
-		// 先にユーザ情報を取り、これを使いまわす
-		userinfo = twitter.verifyCredentials()
-		this.twitter = twitter
+        // Twitter認証
+        authenticationProcess()
 
 		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		listMstDao = new ListMstDao(db)
 		listDataDao = new ListDataDao(db)
 	}
+
 
 	@Override
 	void mainProcess() {
@@ -108,6 +91,34 @@ class TwitterWatcher extends ManagedThread {
 		userinfo = null
 	}
 
+    /**
+     * OAuth認証を行う
+     * 認証処理でtwitterインスタンスの更新を行う
+     *
+     * @return 認証に成功した場合、true
+     */
+    protected void authenticationProcess() throws TwitterException {
+
+        // このプログラムで利用するTwitterオブジェクトを作成
+        ConfigurationBuilder cb = new ConfigurationBuilder()
+        String consumerKey = config.get("oauth.consumerKey")
+        String consumerSecret = config.get("oauth.consumerSecret")
+        cb.setDebugEnabled(true)
+            .setOAuthConsumerKey(consumerKey)
+            .setOAuthConsumerSecret(consumerSecret)
+        TwitterFactory factory = new TwitterFactory(cb.build())
+        twitter = factory.getInstance()
+
+        def oauth = new OAuthComponent()
+        oauth.setOAuthAccessToken(twitter)
+        if (!oauth.isAuthorized(twitter)) {
+            oauth.authorize(twitter)
+        }
+
+        // 先にユーザ情報を取り、これを使いまわす
+        userinfo = twitter.verifyCredentials()
+    }
+
 	/**
 	 * 指定されたTwitterアカウントのリストから画像のURLを取得し、DBに保存する
 	 *
@@ -117,32 +128,16 @@ class TwitterWatcher extends ManagedThread {
 
 		// 認証ユーザが持つリストを取得
 		ResponseList<UserList> lists = null
-		try {
-			lists = twitter.getUserLists(userinfo.getScreenName())
-		}
-		catch (TwitterException te) {
+        while (lists == null) {
+            try {
+                lists = twitter.getUserLists(userinfo.getScreenName())
+            }
+            catch (TwitterException te) {
 
-			// リスト取得で401が返ってきた場合は、再認証処理を行う必要がある
-			def oauth = new OAuthComponent()
-			if (!oauth.isAuthorized(twitter)) {
-				ConfigurationBuilder cb = new ConfigurationBuilder()
-				String consumerKey = config.get("oauth.consumerKey")
-				String consumerSecret = config.get("oauth.consumerSecret")
-				cb.setDebugEnabled(true)
-					.setOAuthConsumerKey(consumerKey)
-					.setOAuthConsumerSecret(consumerSecret)
-
-				TwitterFactory factory = new TwitterFactory(cb.build())
-				twitter = factory.getInstance()
-
-				// 再認証
-				oauth.authorize(twitter)
-
-				// 必要なTwitter情報と取り直す
-				userinfo = twitter.verifyCredentials()
-				lists = twitter.getUserLists(userinfo.getScreenName())
-			}
-		}
+                // リスト取得で401が返ってきた場合は、再認証処理を行い、必要なTwitter情報を取り直す
+                authenticationProcess()
+            }
+        }
 
 		// TODO:list_mstが持つリスト名をどこかのタイミングで更新するようにすること
 		// TODO:リストのブラック、ホワイトリストを持つようにした場合、そこのチェックタイミングで更新すること

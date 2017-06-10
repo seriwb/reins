@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-	compile ('org.codehaus.groovy:groovy-all:2.4.7') {transitive = false}
+	compile ('org.codehaus.groovy:groovy-all:2.4.11') {transitive = false}
 	compile ('org.twitter4j:twitter4j-core:[4.0,)') {transitive = false}
 	compile ('org.codehaus.groovy.modules.http-builder:http-builder:0.7.1') {transitive = false}
 //	compile 'org.hibernate:hibernate-gradle-plugin:4.3.6.Final'
@@ -28,8 +28,9 @@ dependencies {
 	compile ('com.fasterxml.jackson.core:jackson-annotations:[2.4,)') {transitive = false}
 	compile ('com.h2database:h2:1.4.180') {transitive = false}
 
-	testImplementation 'org.spockframework:spock-core:1.0-groovy-2.4'
-//	testImplementation 'junit:junit:4.12'
+	testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+    testCompile group: 'cglib', name: 'cglib-nodep', version: '3.2.5'
+    testCompile group: 'org.objenesis', name: 'objenesis', version: '2.5.1'
 }
 
 def defaultEncoding = 'UTF-8'

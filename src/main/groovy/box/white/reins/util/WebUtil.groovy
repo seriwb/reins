@@ -57,6 +57,7 @@ abstract class WebUtil {
 
 	/**
 	 * WEBから画像をダウンロードする。
+	 * Twitter公式の画像はオリジナルサイズを取得対象にする。
 	 *
 	 * @param url 画像URL
 	 * @param filepath 画像保存先ファイル
@@ -64,7 +65,7 @@ abstract class WebUtil {
 	static void download(String url, File filepath) {
 		String imageUrl = url
 		if (url =~ """pbs.twimg.com""") {
-			imageUrl = url.concat(":large")
+			imageUrl = url.concat(":orig")
 		}
 		URL website = new URL(imageUrl)
 		ReadableByteChannel rbc = Channels.newChannel(website.openStream())
