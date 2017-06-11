@@ -15,18 +15,21 @@ import box.white.reins.util.WebUtil
  * @author seri
  */
 @Slf4j
-class ImageGetter extends Thread {
+class ImageGetter extends ManagedThread {
 
 	def config = null			// 設定値
 	String dirpath = null		// フォルダ作成先パス
-
-	private volatile boolean loop = true
 
 	/** リストマスタ参照用のDAO */
 	ListMstDao listMstDao = null
 
 	/** リストデータの作成に利用するDAO */
 	ListDataDao listDataDao = null
+
+	Sql db = null
+	
+	/** sleepのベース時間：リスト毎は短め、チェック後は長め */
+	final int WAIT_TIME
 
 	ImageGetter(config) {
 		this.config = config
@@ -35,113 +38,106 @@ class ImageGetter extends Thread {
 		if (dirpath == null || dirpath == "") {
 			dirpath = "./dir"
 		}
+		
+		WAIT_TIME = config.reins.loop.waittime
 	}
 
 	final def IMAGE_SET = ["png", "jpg", "bmp", "jpeg", "gif"]
 
-	/**
-	 * スレッド停止用メソッド<br>
-	 * スレッド作成元のスレッドで呼ぶように作ること。
-	 */
-	void stopRunning(){
-		loop = false
-	}
-
-
 	@Override
-	void run() {
-
-		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
+	void preProcess() {
+		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		listMstDao = new ListMstDao(db)
 		listDataDao = new ListDataDao(db)
+	}
+	
+	@Override
+	void mainProcess() {
+		// リスト一覧の取得
+		def listInfos = listMstDao.getListAll()
 
-		// スリープ
-		int waittime = config.reins.loop.waittime
+		// リストが全然ないなら動きようがないですな
+		if (listInfos == null || listInfos.size() == 0) {
+			// リストができるまでしばらく待つ
+			log.info "reins is working to create list information. wait 20s until next search."
+			sleep(20000)
+			return
+		}
 
-		while(loop) {
+		def attributes = ["twitter", "gif"]		// TODO:取得対象
+		attributes.each { attribute ->
 
-			// リスト一覧の取得
-			def listInfos = listMstDao.getListAll()
+			listInfos.collect {
+				[ listId : it.get("listId"), listName : it.get("listName") ]
+			}.each { listInfo ->
 
-			// リストが全然ないなら動きようがないですな
-			if (listInfos == null || listInfos.size() == 0) {
-				// リストができるまでしばらく待つ
-				log.info "reins is working to create list information. wait 20000 ms until next search."
-				sleep(20000)
-				continue
-			}
-			else {
+				log.info "listInfo:$listInfo"
 
-				def attributes = ["twitter", "gif"]		// TODO:取得対象
-				attributes.each { attribute ->
+				int max_getimage = 200	// 1テーブルが1回の動作で取得する回数はMAXを定めておく
+				def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
 
-					listInfos.collect {
-						[ listId : it.get("listId"), listName : it.get("listName") ]
-					}.each { listInfo ->
+				if (imageInfos == null || imageInfos.size() == 0) {
+					log.info "no image url : ${listInfo.listName}"
+				}
+				else {
+					imageInfos.collect {
+						[
+							id : it.get("id"),
+							imageUrl : it.get("imageUrl"),
+							screenName : it.get("screenName"),
+							counterStatus : it.get("counterStatus"),
+							statusId : it.get("statusId"),
+							tweetDate : it.get("tweetDate"),
+							retweetUser : it.get("retweetUser")
+						]
+					}.each { imageInfo ->
 
-						log.info "listInfo:$listInfo"
+						// ユーザー単位の画像フォルダを作成する
+						File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
+						File filepath = createFileName(dirpath, imageInfo)
 
-						int max_getimage = 200	// 1テーブルが1回の動作で取得する回数はMAXを定めておく
-						def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
+						if (imageInfo.attribute != "pixiv") {
+							// 拡張子が画像ファイルのものを対象にする
+							if (filepath != null) {
 
-						if (imageInfos == null || imageInfos.size() == 0) {
-							log.info "no image url : ${listInfo.listName}"
-						}
-						else {
-							imageInfos.collect {
+								log.info "imageInfo:$imageInfo"
 
-								[
-									id : it.get("id"),
-									imageUrl : it.get("imageUrl"),
-									screenName : it.get("screenName"),
-									counterStatus : it.get("counterStatus"),
-									statusId : it.get("statusId"),
-									tweetDate : it.get("tweetDate"),
-									retweetUser : it.get("retweetUser")
-								]
-							}.each { imageInfo ->
-
-								// ユーザー単位の画像フォルダを作成する
-								File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
-								File filepath = createFileName(dirpath, imageInfo)
-
-								if (imageInfo.attribute != "pixiv") {
-									// 拡張子が画像ファイルのものを対象にする
-									if (filepath != null) {
-
-										log.info "imageInfo:$imageInfo"
-
-										// ファイル名をDBに保存
-										listDataDao.updateImageName(
-												listInfo.listId, imageInfo.id, filepath.getName())
-										try {
-											// Retweetをダウンロードするかの判定
-											if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
-												WebUtil.download(imageInfo.imageUrl, filepath)
-											} else if (StringUtil.isBlank(imageInfo.retweetUser)) {
-												WebUtil.download(imageInfo.imageUrl, filepath)
-											}
-											// 終了を設定
-											imageInfo.counterStatus = -1
-										} catch (e) {
-											// 施行回数を上げる
-											imageInfo.counterStatus += 1
-											log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
-											log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
-										}
+								// ファイル名をDBに保存
+								listDataDao.updateImageName(
+										listInfo.listId, imageInfo.id, filepath.getName())
+								try {
+									// Retweetをダウンロードするかの判定
+									if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
+										WebUtil.download(imageInfo.imageUrl, filepath)
+									} else if (StringUtil.isBlank(imageInfo.retweetUser)) {
+										WebUtil.download(imageInfo.imageUrl, filepath)
 									}
+									// 終了を設定
+									imageInfo.counterStatus = -1
+								} catch (e) {
+									// 施行回数を上げる
+									imageInfo.counterStatus += 1
+									log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
+									log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
 								}
-								listDataDao.updateStatus(listInfo.listId, imageInfo)
 							}
 						}
+						listDataDao.updateStatus(listInfo.listId, imageInfo)
 					}
 				}
 			}
-
-			// 1周したら結構待つ
-			log.info "image download completed. wait ${waittime / 2}s until next download process."
-			sleep(waittime * 500)
 		}
+
+		// 1周したら結構待つ
+		log.info "image download completed. wait ${WAIT_TIME / 2}s until next download process."
+		sleep(WAIT_TIME * 500)
+	}
+
+	@Override
+	void postProcess() {
+		listDataDao = null
+		listMstDao = null
+		db = null
 	}
 
 	/**

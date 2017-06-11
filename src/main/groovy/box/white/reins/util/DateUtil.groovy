@@ -8,17 +8,17 @@ import java.text.SimpleDateFormat
  *
  * @author seri
  */
-abstract class DateUtil {
+class DateUtil {
 
-	/**
-	 * 指定の日付のDateインスタンスを返す
-	 *
-	 * @param dateStr
-	 * @param format
-	 * @return Dateインスタンス
-	 */
-	static Date convertDate(String dateStr, String format) {
-		def dateFormat = new SimpleDateFormat(format)
-		dateFormat.parse(dateStr)
-	}
+    /**
+     * 指定の日付のDateインスタンスを返す
+     *
+     * @param dateStr
+     * @param format
+     * @return Dateインスタンス
+     */
+    static Date convertDate(String dateStr, String format) {
+        def dateFormat = new SimpleDateFormat(format)
+        dateFormat.parse(dateStr)
+    }
 }

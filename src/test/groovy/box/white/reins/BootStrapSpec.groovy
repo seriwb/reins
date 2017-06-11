@@ -1,4 +1,4 @@
-package reins
+package box.white.reins
 
 import java.awt.Desktop
 

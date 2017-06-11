@@ -26,18 +26,20 @@ Twitterから情報取得時にネットワークエラーが発生した場合�
 
 ## 実行方法
 
-0. [Java SE 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)をインストール。
-1. [releases](https://github.com/seriwb/reins/releases/latest)からzipファイルを取得し、適当な場所に展開。
-2. 必要に応じてconf/Config.groovyの値を調整。
-3. コンソールからreins-0.3.1.jarがある場所まで移動し、以下のコマンドを実行。
+0. [Java SE 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)をインストール
+1. [releases](https://github.com/seriwb/reins/releases/latest)からzipファイルを取得し、適当な場所に展開
+2. 必要に応じてconf/config.txtの値を調整
+3. 画像取得対象のリストを選びたい場合は、conf/allow.txtにリスト名を追加
+4. 画像取得対象外のリストを設定したい場合は、conf/deny.txtにリスト名を追加
+5. コンソールからreins-0.3.2.jarがある場所まで移動し、以下のコマンドを実行
 ```
-java -jar reins-0.3.1.jar
+java -jar reins-0.3.2.jar
 ```
 
 
 ## 設定の変更方法
 
-Reinsの動作設定は```conf/Config.groovy```を編集することで変更が可能です。
+Reinsの動作設定は```conf/config.txt```を編集することで変更が可能です。
 
 以下の内容が変更可能です。
 

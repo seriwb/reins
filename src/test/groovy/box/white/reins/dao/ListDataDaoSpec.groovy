@@ -1,4 +1,4 @@
-package reins.dao
+package box.white.reins.dao
 
 import spock.lang.Ignore
 import spock.lang.Specification

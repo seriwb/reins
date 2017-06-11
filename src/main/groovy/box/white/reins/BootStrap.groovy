@@ -10,7 +10,7 @@ import box.white.reins.dao.ReinsMstDao
  * 初期化用クラス<br>
  * initで以下の処理を行う。
  * <ul>
- * <li>conf/Config.groovyに記載された設定値の読み込み</li>
+ * <li>conf/config.txtに記載された設定値の読み込み</li>
  * <li>DBの初期データ作成</li>
  * <li>Twitter API利用の初期処理</li>
  * </ul>
@@ -25,7 +25,7 @@ class BootStrap {
 	def init = { config ->
 		// 1---------- 設定値の初期化 ---------------
 		config = new ConfigSlurper().parse(
-				new File('./conf/Config.groovy').toURI().toURL())
+				new File('./conf/config.txt').toURI().toURL())
 
 		// 2---------- DBの初期化 ---------------
 		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)

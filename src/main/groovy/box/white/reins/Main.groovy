@@ -1,9 +1,6 @@
 package box.white.reins
 
 import groovy.util.logging.Slf4j
-import twitter4j.Twitter
-import twitter4j.TwitterFactory
-import twitter4j.conf.ConfigurationBuilder
 import box.white.reins.component.OAuthComponent
 
 /**
@@ -21,34 +18,18 @@ class Main {
 
 //		bs.destroy()
 
-		// このプログラムで利用するTwitterオブジェクトを作成
-		ConfigurationBuilder cb = new ConfigurationBuilder()
-		String consumerKey = config.get("oauth.consumerKey")
-		String consumerSecret = config.get("oauth.consumerSecret")
-		cb.setDebugEnabled(true)
-			.setOAuthConsumerKey(consumerKey)
-			.setOAuthConsumerSecret(consumerSecret)
-		TwitterFactory factory = new TwitterFactory(cb.build())
-		Twitter twitter = factory.getInstance()
-
-		def oauth = new OAuthComponent()
-		if (!oauth.isAuthorized(twitter)) {
-
-			twitter = factory.getInstance()
-			oauth.authorize(twitter)
-		}
-
-		def tw = new TwitterWatcher(config, twitter)
+		def tw = new TwitterWatcher(config)
 		def ig = new ImageGetter(config)
 		def cl = new CommandListener(config)
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			void run () {
+				ThreadManager.stopRecovering()
+				
 				tw.stopRunning()
 				ig.stopRunning()
 				cl.stopRunning()
 				
-				log.info("exit.")
 				println "exit."
 			}
 		})
@@ -57,5 +38,30 @@ class Main {
 		ThreadManager.execute(tw)
 		ThreadManager.execute(ig)
 		ThreadManager.execute(cl)
+		
+		// recoverから落ちたと判定されて帰ってきたインスタンスを再作成するのがいいのではないだろうか
+		while (true) {
+			try {
+				ThreadManager.recover()
+			} catch (e) {
+				switch (e.getMessage()) {
+					case "TwitterWatcher":
+						tw = new TwitterWatcher(config)
+						ThreadManager.execute(tw)
+						break
+					case "ImageGetter":
+						ig = new ImageGetter(config)
+						ThreadManager.execute(ig)
+						break
+					case "CommandListener":
+						cl = new CommandListener(config)
+						ThreadManager.execute(cl)
+						break
+					default:
+						log.error("${e.getMessage()} is not found!")
+						System.exit(-1)
+				}
+			}
+		}
 	}
 }

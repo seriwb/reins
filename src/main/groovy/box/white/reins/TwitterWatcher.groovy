@@ -14,6 +14,7 @@ import box.white.reins.component.OAuthComponent
 import box.white.reins.dao.ListDataDao
 import box.white.reins.dao.ListMstDao
 import box.white.reins.model.ListData
+import box.white.reins.util.FileUtil
 
 /**
  * Twitterアカウントのリストから定期的に画像のURLを取得する。<br>
@@ -21,9 +22,11 @@ import box.white.reins.model.ListData
  * @author seri
  */
 @Slf4j
-class TwitterWatcher extends Thread {
+class TwitterWatcher extends ManagedThread {
 
 	def config = null
+
+	/** Twitterインスタンス */
 	Twitter twitter = null
 
 	/** 1度に取得要求するTweet数 */
@@ -35,155 +38,211 @@ class TwitterWatcher extends Thread {
 	/** sleepのベース時間：リスト毎は短め、チェック後は長め */
 	final int WAIT_TIME
 
-	private volatile boolean loop = true
-
 	/** リストマスタ参照用のDAO */
 	ListMstDao listMstDao = null
 
 	/** リストデータの作成に利用するDAO */
 	ListDataDao listDataDao = null
 
+	def userinfo = null
+	Sql db = null
+
+	List<String> allowList = null
+	List<String> denyList = null
+
 	/**
 	 * コンストラクタ<br>
 	 * Config値の設定を行う。
 	 *
 	 * @param config Config値
-	 * @param twitter Twitterインスタンス
 	 */
-	TwitterWatcher(config, Twitter twitter) {
+	TwitterWatcher(config) {
 		this.config = config
-		this.twitter = twitter
 
 		TWEET_MAX_COUNT = config.reins.tweet.maxcount
 		WAIT_TIME = config.reins.loop.waittime
 	}
 
-
-	/**
-	 * スレッド停止用メソッド<br>
-	 * スレッド作成元のスレッドで終了時に呼ぶこと。
-	 */
-	void stopRunning(){
-		loop = false
-	}
-
 	@Override
-	void run() {
+	void preProcess() {
+		// Twitter認証
+		authenticationProcess()
 
-		// 先にユーザ情報を取り、これを使いまわす
-		def userinfo = twitter.verifyCredentials()
-
-		Sql db = Sql.newInstance(ReinsConstants.JDBC_MAP)
+		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		listMstDao = new ListMstDao(db)
 		listDataDao = new ListDataDao(db)
+		
+		allowList = FileUtil.skipCommentLine(FileUtil.readLinesExcludeBlank("./conf/allow.txt"))
+		denyList = FileUtil.skipCommentLine(FileUtil.readLinesExcludeBlank("./conf/deny.txt"))
+	}
 
-		while(loop) {
-			try {
-				// 画像URLの取得処理
-				loopImageGetTask(userinfo)
-			}
-			catch (TwitterException te) {
-				log.error("Twitter service or network is unavailable.", te)
-				log.info "Twitter service or network is unavailable. wait ${15} minutes until next search."
-				sleep(15 * 60 * 1000)
-			}
+
+	@Override
+	void mainProcess() {
+		try {
+			// 画像URLの取得処理
+			loopImageGetTask()
+		}
+		catch (TwitterException te) {
+			log.error("Twitter service or network is unavailable.", te)
+			log.info "Twitter service or network is unavailable. wait ${15} minutes until next search."
+			sleep(15 * 60 * 1000)
 		}
 	}
 
+	@Override
+	void postProcess() {
+		listDataDao = null
+		listMstDao = null
+		db = null
+		userinfo = null
+		twitter = null
+	}
+
+	/**
+	 * OAuth認証を行う
+	 * 認証処理でtwitterインスタンスの更新を行う
+	 * 
+	 * @return 認証に成功した場合、true
+	 */
+	protected void authenticationProcess() throws TwitterException {
+
+		// Twitterオブジェクトの作成
+		ConfigurationBuilder cb = new ConfigurationBuilder()
+		String consumerKey = config.get("oauth.consumerKey")
+		String consumerSecret = config.get("oauth.consumerSecret")
+		cb.setDebugEnabled(true)
+				.setOAuthConsumerKey(consumerKey)
+				.setOAuthConsumerSecret(consumerSecret)
+		TwitterFactory factory = new TwitterFactory(cb.build())
+		twitter = factory.getInstance()
+
+		// 認証
+		def oauth = new OAuthComponent()
+		oauth.setOAuthAccessToken(twitter)
+		if (!oauth.isAuthorized(twitter)) {
+			oauth.authorize(twitter)
+		}
+
+		// ユーザ情報を取得し、使いまわす
+		userinfo = twitter.verifyCredentials()
+	}
 
 	/**
 	 * 指定されたTwitterアカウントのリストから画像のURLを取得し、DBに保存する
 	 *
 	 * @param userinfo Twitterのユーザ情報。再認証後は再取得の必要がある。
+	 * @throws TwitterException
 	 */
-	protected void loopImageGetTask(userinfo)
-	throws TwitterException {
+	protected void loopImageGetTask() throws TwitterException {
 
 		// 認証ユーザが持つリストを取得
 		ResponseList<UserList> lists = null
-		try {
-			lists = twitter.getUserLists(userinfo.getScreenName())
-		}
-		catch (TwitterException te) {
-
-			// リスト取得で401が返ってきた場合は、再認証処理を行う必要がある
-			def oauth = new OAuthComponent()
-			if (!oauth.isAuthorized(twitter)) {
-				ConfigurationBuilder cb = new ConfigurationBuilder()
-				String consumerKey = config.get("oauth.consumerKey")
-				String consumerSecret = config.get("oauth.consumerSecret")
-				cb.setDebugEnabled(true)
-					.setOAuthConsumerKey(consumerKey)
-					.setOAuthConsumerSecret(consumerSecret)
-
-				TwitterFactory factory = new TwitterFactory(cb.build())
-				twitter = factory.getInstance()
-
-				// 再認証
-				oauth.authorize(twitter)
-
-				// 必要なTwitter情報と取り直す
-				userinfo = twitter.verifyCredentials()
+		while (lists == null) {
+			try {
 				lists = twitter.getUserLists(userinfo.getScreenName())
 			}
+			catch (TwitterException te) {
+				// リスト取得で401が返ってきた場合は、再認証処理を行い、必要なTwitter情報を取り直す
+				authenticationProcess()
+			}
 		}
 
-		// TODO:list_mstが持つリスト名をどこかのタイミングで更新するようにすること
-		// TODO:リストのブラック、ホワイトリストを持つようにした場合、そこのチェックタイミングで更新すること
-
-
+		// 出力するリストを選定
+		lists.retainAll(selectedUserList)
 		// リストごとに情報を取得
-		lists.each { list ->
-
-			// list_idでマスタを探し、存在しなければリスト用のテーブルを作成する。
-			long listId = list.getId()
-			String listname = list.getName()
-
-			if (!listMstDao.find(listId)) {
-				listMstDao.insert(listId, listname)
-				listDataDao.create(listId)
-			}
-
-			// 現在チェックしているところまでのsince_idを設定
-			long currentSinceId = listMstDao.getSinceId(listId) ?: -1
-
-			// --------------- ツイート取得して解析 -----------------
-			Paging paging = new Paging(1, TWEET_MAX_COUNT)
-			if (currentSinceId != -1) {
-				paging.sinceId = currentSinceId
-			}
-
-			log.info("[check]$listname current since_id:" + currentSinceId)
-
-			// 最大(TWEET_MAX_COUNT × PAGING_MAX_COUNT)のツイートを取得し、チェックする
-			for (int i=1; i <= PAGING_MAX_COUNT; i++) {
-				paging.page = i
-				ResponseList<Status> statuses = twitter.getUserListStatuses(listId, paging)
-
-				if (statuses == null || statuses.size() == 0) {
-					break
-				}
-
-				for (Status status : statuses) {
-					registerImageUrl(listId, status)
-				}
-
-				if (i==1) {
-					// since_idの保持
-					listMstDao.updateSinceId(listId, statuses.get(0).getId())
-				}
-			}
-
-			// リストごとにちょっと待つ
-			sleep(WAIT_TIME * 10)
-		}
+		lists.each(analyzeAndSaveTweet)
 
 		// 1周したら結構待つ
 		log.info "list check completed. wait ${WAIT_TIME}s until next search."
 		sleep(WAIT_TIME * 1000)
 	}
 
+	/**
+	 * ホワイトリストがあれば、そのリスト情報だけ返し、
+	 * ブラックリストがあれば、そのリスト情報を除く
+	 * W:exist, B:non -> W only
+	 * W:exist, B:exist -> W - B
+	 * W:non, B:exist -> All - B
+	 * W:non, B:non -> All
+	 */
+	Closure selectedUserList = { UserList list ->
 
+		// TODO:\#->#のように\の置換処理をする
+		//"\\#sample\\".replaceAll(/(\\)(.)/) { it[2] }
+		List whiteList = allowList
+		List blackList = denyList
+
+		if (whiteList.size() == 0 && blackList.size() == 0) {
+			log.info("ホワイトリスト／ブラックリストの指定がない")
+			return true
+		}
+
+		// ホワイトリストになければ全部NG
+		boolean flag = false
+		if (whiteList.size() != 0 && whiteList.contains(list.name)) {
+			flag = true
+		}
+		if (blackList.size() != 0) {
+			if (whiteList.size() == 0) {
+				flag = true
+			}
+			if (blackList.contains(list.name)) {
+				flag = false
+			}
+		}
+
+		return flag
+	}
+
+
+	Closure analyzeAndSaveTweet = { UserList list ->
+
+		// list_idでマスタを探し、存在しなければリスト用のテーブルを作成する。
+		long listId = list.getId()
+		String listname = list.getName()
+
+		if (!listMstDao.find(listId)) {
+			listMstDao.insert(listId, listname)
+			listDataDao.create(listId)
+		}
+		else {
+			// TODO:リスト名が変わっていないかをチェックし、変わっていたらマスタ値更新
+		}
+
+		// 現在チェックしているところまでのsince_idを設定
+		long currentSinceId = listMstDao.getSinceId(listId) ?: -1
+
+		// --------------- ツイート取得して解析 -----------------
+		Paging paging = new Paging(1, TWEET_MAX_COUNT)
+		if (currentSinceId != -1) {
+			paging.sinceId = currentSinceId
+		}
+
+		log.info("[check]$listname current since_id:" + currentSinceId)
+
+		// 最大(TWEET_MAX_COUNT × PAGING_MAX_COUNT)のツイートを取得し、チェックする
+		for (int i=1; i <= PAGING_MAX_COUNT; i++) {
+			paging.page = i
+			ResponseList<Status> statuses = twitter.getUserListStatuses(listId, paging)
+
+			if (statuses == null || statuses.size() == 0) {
+				break
+			}
+
+			for (Status status : statuses) {
+				registerImageUrl(listId, status)
+			}
+
+			if (i==1) {
+				// since_idの保持
+				listMstDao.updateSinceId(listId, statuses.get(0).getId())
+			}
+		}
+
+		// リストごとにちょっと待つ
+		sleep(WAIT_TIME * 10)
+	}
 
 	/**
 	 * Tweetに画像関係のURLが含まれていれば、
