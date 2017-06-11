@@ -9,8 +9,7 @@ import box.white.reins.ReinsConstants
  *
  * @author seri
  */
-abstract class DbUtil {
+class DbUtil {
 
-	def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
-
+    def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 }

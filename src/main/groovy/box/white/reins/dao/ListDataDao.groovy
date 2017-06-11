@@ -41,7 +41,8 @@ class ListDataDao {
 				!(it.key in ['id', 'class'])
 			})
 		} catch (e) {
-			// TODO:標準出力を辞める
+			// TODO:標準出力を辞める(Sql#executeUpdateがWARNでログ出力するのでレベルを変える)
+			// TODO:重複情報をログ出力する（WARN）
 			println "一意制約なので特に何もしない"
 		}
 	}

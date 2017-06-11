@@ -1,4 +1,4 @@
-package reins
+package box.white.reins
 
 import spock.lang.Specification
 import twitter4j.Query
@@ -30,7 +30,7 @@ class ImageGetterSpec extends Specification {
 	def 画像ファイルの作成テスト() {
 		setup:
 		def config = new ConfigSlurper().parse(
-				new File('./conf/Config.groovy').toURI().toURL())
+				new File('./conf/config.txt').toURI().toURL())
 
 		def imageGetter = new ImageGetter(config)
 

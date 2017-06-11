@@ -14,6 +14,7 @@ import box.white.reins.component.OAuthComponent
 import box.white.reins.dao.ListDataDao
 import box.white.reins.dao.ListMstDao
 import box.white.reins.model.ListData
+import box.white.reins.util.FileUtil
 
 /**
  * Twitterアカウントのリストから定期的に画像のURLを取得する。<br>
@@ -46,6 +47,9 @@ class TwitterWatcher extends ManagedThread {
 	def userinfo = null
 	Sql db = null
 
+	List<String> allowList = null
+	List<String> denyList = null
+
 	/**
 	 * コンストラクタ<br>
 	 * Config値の設定を行う。
@@ -61,12 +65,15 @@ class TwitterWatcher extends ManagedThread {
 
 	@Override
 	void preProcess() {
-        // Twitter認証
-        authenticationProcess()
+		// Twitter認証
+		authenticationProcess()
 
 		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 		listMstDao = new ListMstDao(db)
 		listDataDao = new ListDataDao(db)
+		
+		allowList = FileUtil.skipCommentLine(FileUtil.readLinesExcludeBlank("./conf/allow.txt"))
+		denyList = FileUtil.skipCommentLine(FileUtil.readLinesExcludeBlank("./conf/deny.txt"))
 	}
 
 
@@ -89,59 +96,60 @@ class TwitterWatcher extends ManagedThread {
 		listMstDao = null
 		db = null
 		userinfo = null
+		twitter = null
 	}
 
-    /**
-     * OAuth認証を行う
-     * 認証処理でtwitterインスタンスの更新を行う
-     *
-     * @return 認証に成功した場合、true
-     */
-    protected void authenticationProcess() throws TwitterException {
+	/**
+	 * OAuth認証を行う
+	 * 認証処理でtwitterインスタンスの更新を行う
+	 * 
+	 * @return 認証に成功した場合、true
+	 */
+	protected void authenticationProcess() throws TwitterException {
 
-        // このプログラムで利用するTwitterオブジェクトを作成
-        ConfigurationBuilder cb = new ConfigurationBuilder()
-        String consumerKey = config.get("oauth.consumerKey")
-        String consumerSecret = config.get("oauth.consumerSecret")
-        cb.setDebugEnabled(true)
-            .setOAuthConsumerKey(consumerKey)
-            .setOAuthConsumerSecret(consumerSecret)
-        TwitterFactory factory = new TwitterFactory(cb.build())
-        twitter = factory.getInstance()
+		// Twitterオブジェクトの作成
+		ConfigurationBuilder cb = new ConfigurationBuilder()
+		String consumerKey = config.get("oauth.consumerKey")
+		String consumerSecret = config.get("oauth.consumerSecret")
+		cb.setDebugEnabled(true)
+				.setOAuthConsumerKey(consumerKey)
+				.setOAuthConsumerSecret(consumerSecret)
+		TwitterFactory factory = new TwitterFactory(cb.build())
+		twitter = factory.getInstance()
 
-        def oauth = new OAuthComponent()
-        oauth.setOAuthAccessToken(twitter)
-        if (!oauth.isAuthorized(twitter)) {
-            oauth.authorize(twitter)
-        }
+		// 認証
+		def oauth = new OAuthComponent()
+		oauth.setOAuthAccessToken(twitter)
+		if (!oauth.isAuthorized(twitter)) {
+			oauth.authorize(twitter)
+		}
 
-        // 先にユーザ情報を取り、これを使いまわす
-        userinfo = twitter.verifyCredentials()
-    }
+		// ユーザ情報を取得し、使いまわす
+		userinfo = twitter.verifyCredentials()
+	}
 
 	/**
 	 * 指定されたTwitterアカウントのリストから画像のURLを取得し、DBに保存する
 	 *
 	 * @param userinfo Twitterのユーザ情報。再認証後は再取得の必要がある。
+	 * @throws TwitterException
 	 */
 	protected void loopImageGetTask() throws TwitterException {
 
 		// 認証ユーザが持つリストを取得
 		ResponseList<UserList> lists = null
-        while (lists == null) {
-            try {
-                lists = twitter.getUserLists(userinfo.getScreenName())
-            }
-            catch (TwitterException te) {
+		while (lists == null) {
+			try {
+				lists = twitter.getUserLists(userinfo.getScreenName())
+			}
+			catch (TwitterException te) {
+				// リスト取得で401が返ってきた場合は、再認証処理を行い、必要なTwitter情報を取り直す
+				authenticationProcess()
+			}
+		}
 
-                // リスト取得で401が返ってきた場合は、再認証処理を行い、必要なTwitter情報を取り直す
-                authenticationProcess()
-            }
-        }
-
-		// TODO:list_mstが持つリスト名をどこかのタイミングで更新するようにすること
-		// TODO:リストのブラック、ホワイトリストを持つようにした場合、そこのチェックタイミングで更新すること
-
+		// 出力するリストを選定
+		lists.retainAll(selectedUserList)
 		// リストごとに情報を取得
 		lists.each(analyzeAndSaveTweet)
 
@@ -149,6 +157,44 @@ class TwitterWatcher extends ManagedThread {
 		log.info "list check completed. wait ${WAIT_TIME}s until next search."
 		sleep(WAIT_TIME * 1000)
 	}
+
+	/**
+	 * ホワイトリストがあれば、そのリスト情報だけ返し、
+	 * ブラックリストがあれば、そのリスト情報を除く
+	 * W:exist, B:non -> W only
+	 * W:exist, B:exist -> W - B
+	 * W:non, B:exist -> All - B
+	 * W:non, B:non -> All
+	 */
+	Closure selectedUserList = { UserList list ->
+
+		// TODO:\#->#のように\の置換処理をする
+		//"\\#sample\\".replaceAll(/(\\)(.)/) { it[2] }
+		List whiteList = allowList
+		List blackList = denyList
+
+		if (whiteList.size() == 0 && blackList.size() == 0) {
+			log.info("ホワイトリスト／ブラックリストの指定がない")
+			return true
+		}
+
+		// ホワイトリストになければ全部NG
+		boolean flag = false
+		if (whiteList.size() != 0 && whiteList.contains(list.name)) {
+			flag = true
+		}
+		if (blackList.size() != 0) {
+			if (whiteList.size() == 0) {
+				flag = true
+			}
+			if (blackList.contains(list.name)) {
+				flag = false
+			}
+		}
+
+		return flag
+	}
+
 
 	Closure analyzeAndSaveTweet = { UserList list ->
 
@@ -159,6 +205,9 @@ class TwitterWatcher extends ManagedThread {
 		if (!listMstDao.find(listId)) {
 			listMstDao.insert(listId, listname)
 			listDataDao.create(listId)
+		}
+		else {
+			// TODO:リスト名が変わっていないかをチェックし、変わっていたらマスタ値更新
 		}
 
 		// 現在チェックしているところまでのsince_idを設定

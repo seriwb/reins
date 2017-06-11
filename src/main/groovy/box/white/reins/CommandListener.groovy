@@ -58,7 +58,15 @@ class CommandListener extends ManagedThread {
 
 	@Override
 	void mainProcess() {
-		String command = br.readLine()
+        // OAuth認証との衝突を避けるため、コマンド入力は標準入力にあるときだけreadLineを呼ぶ
+        String command = null
+        while(!command) {
+          if (br.ready()){
+            command = br.readLine()
+          }
+          sleep(100);
+        }
+
 		if (StringUtil.isBlank(command)) {
 			return
 		}

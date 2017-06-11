@@ -1,4 +1,4 @@
-package reins.component
+package box.white.reins.component
 
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j

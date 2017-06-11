@@ -13,7 +13,7 @@ final class ThreadManager {
 
 	@Synchronized('threadMap')
 	static void execute(ManagedThread thread) {
-		String threadName = thread.getClass().getName()
+		String threadName = thread.getClass().getSimpleName()
 		if (threadMap.containsKey(threadName)) {
 			return
 		}

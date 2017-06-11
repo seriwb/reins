@@ -58,7 +58,7 @@ class OAuthComponent {
                 checkKeyAndInsertUpdate(reinsmst, ACCESS_TOKEN, "")
                 checkKeyAndInsertUpdate(reinsmst, ACCESS_TOKEN_SECRET, "")
 
-                twitter.setOAuthAccessToken(null)
+                twitter.setOAuthAccessToken(new AccessToken("", ""))
             }
 
             // それ以外のエラーであればログ出力
@@ -71,7 +71,7 @@ class OAuthComponent {
 
     /**
      * アプリケーションが保持しているアクセストークンを設定する
-     *
+     * 
      * @param twitter アクセストークンを設定するTwitterインスタンス
      */
     void setOAuthAccessToken(Twitter twitter) {
@@ -135,7 +135,7 @@ class OAuthComponent {
                 throw new RuntimeException("access token not enabled. please retry it.")
             }
         }
-        log.debug "OAuth authentication success."
+        println "OAuth authentication success."
 
         // accessTokenを永続化
         storeAccessToken(accessToken)

@@ -10,31 +10,34 @@ import java.nio.channels.ReadableByteChannel
  * WEB操作系のユーティリティ
  *
  * @author seri
- *
  */
-abstract class WebUtil {
+class WebUtil {
 
-	/**
-	 * 指定のTweetが表示されるTwitterのURLを返す
-	 *
-	 * @param screenName Twitterユーザ名
-	 * @param statusId TweetID
-	 * @return TweetのURL
-	 */
-	static String getTwitterUrl(String screenName, Long statusId) {
-		"https://twitter.com/${screenName}/status/${statusId}"
-	}
+    static String getTwitterUrl(String screenName) {
+        "https://twitter.com/${screenName}"
+    }
 
-	/**
-	 * 指定したURLのページをデフォルトのブラウザで表示する
-	 *
-	 * @param url 表示するURL
-	 * @return 表示できたtrue
-	 */
-	static void viewUrlPage(String url) {
-		Desktop desktop = Desktop.getDesktop()
-		desktop.browse(new URI(url))
-	}
+    /**
+     * 指定のTweetが表示されるTwitterのURLを返す
+     *
+     * @param screenName Twitterユーザ名
+     * @param statusId TweetID
+     * @return TweetのURL
+     */
+    static String getTwitterUrl(String screenName, Long statusId) {
+        "https://twitter.com/${screenName}/status/${statusId}"
+    }
+
+    /**
+     * 指定したURLのページをデフォルトのブラウザで表示する
+     *
+     * @param url 表示するURL
+     * @return 表示できたtrue
+     */
+    static void viewUrlPage(String url) {
+        Desktop desktop = Desktop.getDesktop()
+        desktop.browse(new URI(url))
+    }
 
 	//	public static String getURL(String text) {
 	//		def urlList = text.findAll {
@@ -55,22 +58,22 @@ abstract class WebUtil {
 	//	  }
 
 
-	/**
-	 * WEBから画像をダウンロードする。
-	 * Twitter公式の画像はオリジナルサイズを取得対象にする。
-	 *
-	 * @param url 画像URL
-	 * @param filepath 画像保存先ファイル
-	 */
-	static void download(String url, File filepath) {
-		String imageUrl = url
-		if (url =~ """pbs.twimg.com""") {
-			imageUrl = url.concat(":orig")
-		}
-		URL website = new URL(imageUrl)
-		ReadableByteChannel rbc = Channels.newChannel(website.openStream())
-		FileOutputStream fos = new FileOutputStream(filepath)
-		fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE)
-		fos.close()
-	}
+    /**
+     * WEBから画像をダウンロードする。
+     * Twitter公式の画像はオリジナルサイズを取得対象にする。
+     *
+     * @param url 画像URL
+     * @param filepath 画像保存先ファイル
+     */
+    static void download(String url, File filepath) {
+        String imageUrl = url
+        if (url =~ """pbs.twimg.com""") {
+            imageUrl = url.concat(":orig")
+        }
+        URL website = new URL(imageUrl)
+        ReadableByteChannel rbc = Channels.newChannel(website.openStream())
+        FileOutputStream fos = new FileOutputStream(filepath)
+        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE)
+        fos.close()
+    }
 }

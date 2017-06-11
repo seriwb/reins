@@ -48,7 +48,7 @@
 		</Root>
 
 		<Logger name="box.white.reins" level="info" additivity="false">
-			<AppenderRef ref="Console" />
+<!-- 			<AppenderRef ref="Console" /> -->
 			<AppenderRef ref="Routing" />
 			<!-- <AppenderRef ref="RoutingJson" /> -->
 		</Logger>

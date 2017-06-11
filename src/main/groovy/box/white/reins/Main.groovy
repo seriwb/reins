@@ -48,12 +48,15 @@ class Main {
 					case "TwitterWatcher":
 						tw = new TwitterWatcher(config)
 						ThreadManager.execute(tw)
+						break
 					case "ImageGetter":
 						ig = new ImageGetter(config)
 						ThreadManager.execute(ig)
+						break
 					case "CommandListener":
 						cl = new CommandListener(config)
 						ThreadManager.execute(cl)
+						break
 					default:
 						log.error("${e.getMessage()} is not found!")
 						System.exit(-1)
