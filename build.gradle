@@ -105,7 +105,7 @@ jacocoTestReport {
 	reports {
 		xml.enabled true // coveralls plugin depends on xml format report
 		html.enabled true
-		html.destination "${buildDir}/jacocoHtml"
+		html.destination(new File("${buildDir}/jacocoHtml"))
 	}
 }
 jacocoTestReport.dependsOn test
