@@ -175,9 +175,9 @@ Gradleのbuildタスクを実施してください。
 
 ### ビルド環境
 
-- JDK : 1.8.0_131
+- JDK : 1.8.0_144
 - Groovy : 2.4.11
-- Gradle : 3.4.1
+- Gradle : 4.3
 
 
 # License

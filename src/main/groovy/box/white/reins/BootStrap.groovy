@@ -1,6 +1,7 @@
 package box.white.reins
 
-import static box.white.reins.util.StringUtil.*
+import java.util.logging.Level
+
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import box.white.reins.dao.ListMstDao
@@ -22,71 +23,71 @@ import box.white.reins.dao.ReinsMstDao
 @Slf4j
 class BootStrap {
 
-	def init = { config ->
-		// 1---------- 設定値の初期化 ---------------
-		config = new ConfigSlurper().parse(
-				new File('./conf/config.txt').toURI().toURL())
+    def init = { config ->
+        // 1---------- 設定値の初期化 ---------------
+        config = new ConfigSlurper().parse(
+                new File('./conf/config.txt').toURI().toURL())
 
-		// 2---------- DBの初期化 ---------------
-		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
+        // 2---------- DBの初期化 ---------------
+        Sql.LOG.level = Level.SEVERE
+        def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 
-		// マスタ系テーブルの作成
-		def reinsMstDao = new ReinsMstDao(db)
-		try {
-			reinsMstDao.create()
-		} catch (e) {
-			log.info "reins_mst already exist."
-		}
+        // マスタ系テーブルの作成
+        def reinsMstDao = new ReinsMstDao(db)
+        try {
+            reinsMstDao.create()
+        } catch (e) {
+            log.info "reins_mst already exist."
+        }
 
-		def listMstDao = new ListMstDao(db)
-		try {
-			listMstDao.create()
-		} catch (e) {
-			log.info "list_mst already exist."
-		}
+        def listMstDao = new ListMstDao(db)
+        try {
+            listMstDao.create()
+        } catch (e) {
+            log.info "list_mst already exist."
+        }
 
-		db.close()
+        db.close()
 
-		// 3---------- Twitter API利用のキー情報を取得 ---------------
-		InputStream keydata = (BootStrap.class).getResourceAsStream("key.data")
-		byte[] decoded = null
-		keydata.eachLine { decoded = it.decodeBase64() }
+        // 3---------- Twitter API利用のキー情報を取得 ---------------
+        InputStream keydata = (BootStrap.class).getResourceAsStream("key.data")
+        byte[] decoded = null
+        keydata.eachLine { decoded = it.decodeBase64() }
 
-		ByteArrayInputStream bais = new ByteArrayInputStream(decoded)
-		ObjectInputStream ois = new ObjectInputStream(bais)
-		Map<String, String> keymap = (HashMap) ois.readObject()
+        ByteArrayInputStream bais = new ByteArrayInputStream(decoded)
+        ObjectInputStream ois = new ObjectInputStream(bais)
+        Map<String, String> keymap = (HashMap) ois.readObject()
 
-		config.put("oauth.consumerKey", keymap.get("consumerKey"))
-		config.put("oauth.consumerSecret", keymap.get("consumerSecret"))
+        config.put("oauth.consumerKey", keymap.get("consumerKey"))
+        config.put("oauth.consumerSecret", keymap.get("consumerSecret"))
 
-		config
-	}
+        config
+    }
 
+    /**
+     * 環境初期化用
+     */
+    def destroy = {
 
-	/**
-	 * 環境初期化用
-	 */
-	def destroy = {
+        def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
 
-		def db = Sql.newInstance(ReinsConstants.JDBC_MAP)
+        try {
+            log.debug "search tables"
+            def rows = db.rows("select listId from list_mst")
 
-		try {
-			log.debug "search tables"
-			def rows = db.rows("select listId from list_mst")
+            rows.each {
+                String tablename = """list_${it.get("listId")}"""
+                String sql = "drop table $tablename"
+                log.debug sql
+                db.execute(sql)
+            }
 
-			rows.each {
-				String tablename = """list_${it.get("listId")}"""
-				String sql = "drop table $tablename"
-				log.debug sql
-				db.execute(sql)
-			}
+            log.debug "drop table list_mst"
+            db.execute('drop table list_mst')
+        } catch (e) {
+            log.error("DB init Error!", e)
+        }
 
-			log.debug "drop table list_mst"
-			db.execute('drop table list_mst')
-		} catch (e) {
-			log.error ("DB init Error!", e)
-		}
-
-		db.close()
-	}
+        db.close()
+    }
 }
