@@ -1,5 +1,13 @@
 package box.white.reins
 
+import box.white.reins.component.OAuthComponent
+import box.white.reins.dao.ListDataDao
+import box.white.reins.dao.ListMstDao
+import box.white.reins.dao.ReinsMstDao
+import box.white.reins.dao.TimelineDao
+import box.white.reins.model.ListData
+import box.white.reins.model.Timeline
+import box.white.reins.util.FileUtil
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import twitter4j.Paging
@@ -10,11 +18,6 @@ import twitter4j.TwitterException
 import twitter4j.TwitterFactory
 import twitter4j.UserList
 import twitter4j.conf.ConfigurationBuilder
-import box.white.reins.component.OAuthComponent
-import box.white.reins.dao.ListDataDao
-import box.white.reins.dao.ListMstDao
-import box.white.reins.model.ListData
-import box.white.reins.util.FileUtil
 
 /**
  * Twitterアカウントのリストから定期的に画像のURLを取得する。<br>
@@ -44,6 +47,9 @@ class TwitterWatcher extends ManagedThread {
     /** リストデータの作成に利用するDAO */
     ListDataDao listDataDao = null
 
+    TimelineDao timelineDao = null
+    ReinsMstDao reinsMstDao = null
+
     def userinfo = null
     Sql db = null
 
@@ -71,6 +77,8 @@ class TwitterWatcher extends ManagedThread {
         db = Sql.newInstance(ReinsConstants.JDBC_MAP)
         listMstDao = new ListMstDao(db)
         listDataDao = new ListDataDao(db)
+        timelineDao = new TimelineDao(db)
+        reinsMstDao = new ReinsMstDao(db)
 
         allowList = FileUtil.skipCommentLine(FileUtil.readLinesExcludeBlank("./conf/allow.txt"))
         denyList = FileUtil.skipCommentLine(FileUtil.readLinesExcludeBlank("./conf/deny.txt"))
@@ -80,13 +88,25 @@ class TwitterWatcher extends ManagedThread {
     @Override
     void mainProcess() {
         try {
-            // 画像URLの取得処理
-            loopImageGetTask()
+            if (config.reins.timeline.target) {
+                // タイムラインの画像URLの取得処理
+                loopTimelineImageGetTask()
+            }
+            if (config.reins.list.target) {
+                // リストの画像URLの取得処理
+                loopListImageGetTask()
+            }
+
+            // 1周したら結構待つ
+            log.info "list check completed. wait ${WAIT_TIME}s until next search."
+            sleep(WAIT_TIME * 1000)
         }
         catch (TwitterException te) {
             log.error("Twitter service or network is unavailable.", te)
             log.info "Twitter service or network is unavailable. wait ${15} minutes until next search."
+            println(te.getMessage())
             sleep(15 * 60 * 1000)
+            authenticationProcess()     // エラー後なので一応認証チェックをする
         }
     }
 
@@ -129,12 +149,54 @@ class TwitterWatcher extends ManagedThread {
     }
 
     /**
-     * 指定されたTwitterアカウントのリストから画像のURLを取得し、DBに保存する
+     * Twitterアカウントのタイムラインから画像のURLを取得し、DBに保存する
      *
-     * @param userinfo Twitterのユーザ情報。再認証後は再取得の必要がある。
      * @throws TwitterException
      */
-    protected void loopImageGetTask() throws TwitterException {
+    protected void loopTimelineImageGetTask() throws TwitterException {
+
+        // 現在チェックしているところまでのsince_idを設定
+        String sinceid = reinsMstDao.getValue(ReinsConstants.TIMELINE_SINCEID)
+        long currentSinceId = sinceid ? Long.valueOf(sinceid) : -1
+
+        // --------------- ツイート取得して解析 -----------------
+        Paging paging = new Paging(1, TWEET_MAX_COUNT)
+        if (currentSinceId != -1) {
+            paging.sinceId = currentSinceId
+        }
+
+        log.info("[check]timeline current since_id:" + currentSinceId)
+
+        // 最大(TWEET_MAX_COUNT × PAGING_MAX_COUNT)のツイートを取得し、チェックする
+        for (int i = 1; i <= PAGING_MAX_COUNT; i++) {
+            paging.page = i
+            ResponseList<Status> statuses = twitter.getHomeTimeline(paging)     // getUserTimelineでユーザのみのが取れる
+
+            if (statuses == null || statuses.size() == 0) {
+                break
+            }
+
+            for (Status status : statuses) {
+                registerImageUrl(status)
+            }
+
+            if (i == 1) {
+                // since_idの保持
+                if (reinsMstDao.findKey(ReinsConstants.TIMELINE_SINCEID)) {
+                    reinsMstDao.updateValue(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+                } else {
+                    reinsMstDao.insert(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+                }
+            }
+        }
+    }
+
+    /**
+     * Twitterアカウントのリストから画像のURLを取得し、DBに保存する
+     *
+     * @throws TwitterException
+     */
+    protected void loopListImageGetTask() throws TwitterException {
 
         // 認証ユーザが持つリストを取得
         ResponseList<UserList> lists = null
@@ -143,6 +205,7 @@ class TwitterWatcher extends ManagedThread {
                 lists = twitter.getUserLists(userinfo.getScreenName())
             }
             catch (TwitterException te) {
+                log.error(te.getMessage())
                 // リスト取得で401が返ってきた場合は、再認証処理を行い、必要なTwitter情報を取り直す
                 authenticationProcess()
             }
@@ -152,10 +215,6 @@ class TwitterWatcher extends ManagedThread {
         lists.retainAll(selectedUserList)
         // リストごとに情報を取得
         lists.each(analyzeAndSaveTweet)
-
-        // 1周したら結構待つ
-        log.info "list check completed. wait ${WAIT_TIME}s until next search."
-        sleep(WAIT_TIME * 1000)
     }
 
     /**
@@ -174,7 +233,7 @@ class TwitterWatcher extends ManagedThread {
         List blackList = denyList
 
         if (whiteList.size() == 0 && blackList.size() == 0) {
-            log.info("ホワイトリスト／ブラックリストの指定がない")
+            log.debug("ホワイトリスト／ブラックリストの指定がない")
             return true
         }
 
@@ -241,6 +300,59 @@ class TwitterWatcher extends ManagedThread {
 
         // リストごとにちょっと待つ
         sleep(WAIT_TIME * 10)
+    }
+
+    /**
+     * Tweetに画像関係のURLが含まれていれば、
+     * そのURLをtimelineテーブルに登録する。<br>
+     *
+     * @param status Tweet情報
+     */
+    protected void registerImageUrl(Status status) {
+
+        // Tweetしたユーザー名
+        String screenName = null
+        // Retweetしたユーザ名
+        String retweetUser = null
+
+        if (status.getRetweetedStatus() != null && config.reins.retweet.target) {
+            // RTの場合はRT元のユーザー名を格納する
+            screenName = status.getRetweetedStatus().getUser().getScreenName()
+            retweetUser = status.getUser().getScreenName()
+        } else if (status.getRetweetedStatus() == null) {
+            screenName = status.getUser().getScreenName()
+        } else {
+            return
+        }
+
+        // DB登録時の共通値設定
+        Timeline timeline = new Timeline(
+                statusId: status.getId(),
+                tweetDate: status.getCreatedAt(),
+                screenName: screenName,
+                retweetUser: retweetUser,
+                counterStatus: 0)
+
+        // media_urlならTwitter公式、それ以外は別形式で保存
+        status.getMediaEntities().each {
+            timeline.imageUrl = it.getMediaURL()
+            timeline.attribute = "twitter"
+            timelineDao.insert(timeline)
+        }
+        // ----------■公式以外のリンクを取得する場合はここに書く--------------
+        status.getURLEntities().each {
+            // pixivリンクの保存
+            if (it.getExpandedURL() =~ """www.pixiv.net/member_illust.php""") {
+                timeline.attribute = "pixiv"
+            }
+            // gifの保存
+            else if (it.getExpandedURL() =~ /.gif$/) {
+                timeline.attribute = "gif"
+            }
+            timeline.imageUrl = it.getExpandedURL()
+            timelineDao.insert(timeline)
+        }
+        // ---------------------------------------------------------------------
     }
 
     /**

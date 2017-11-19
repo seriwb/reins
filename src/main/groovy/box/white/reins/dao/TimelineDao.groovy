@@ -1,25 +1,25 @@
 package box.white.reins.dao
 
+import box.white.reins.model.Timeline
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
-import box.white.reins.model.ListData
 
 /**
- * list_<リストID>のテーブルを操作するDAO
+ * timelineテーブルを操作するDAO
  *
  * @author seri
  */
-class ListDataDao implements DataDao {
+class TimelineDao implements DataDao {
 
     Sql db = null
 
-    ListDataDao(Sql db) {
+    TimelineDao(Sql db) {
         this.db = db
     }
 
-    def create(long listId) {
+    def create() {
 
-        db.execute("""create table if not exists list_${listId} (
+        db.execute("""create table if not exists timeline (
                     | id bigint unsigned auto_increment not null primary key,
                     | imageUrl varchar2(300) unique,
                     | imageName varchar2(75),
@@ -31,13 +31,12 @@ class ListDataDao implements DataDao {
                     | tweetDate datetime)""".stripMargin())
     }
 
-    def insert(long listId, ListData listData) {
+    def insert(Timeline timeline) {
 
-        String tablename = "list_${listId}"
-        def listSet = db.dataSet(tablename)
+        def listSet = db.dataSet("timeline")
 
         try {
-            listSet.add(listData.getProperties().findAll {
+            listSet.add(timeline.getProperties().findAll {
                 !(it.key in ['id', 'class'])
             })
         } catch (e) {
@@ -50,10 +49,6 @@ class ListDataDao implements DataDao {
      * TODO:do test
      * @return
      */
-    def getImageInfo(long listId, String attribute, int max) {
-        getImageInfo("list_${listId}", attribute, max)
-    }
-
     @Override
     def getImageInfo(String tablename, String attribute, int max) {
         db.rows("""select id, imageUrl, screenName, retweetUser, counterStatus, statusId, tweetDate
@@ -70,18 +65,10 @@ class ListDataDao implements DataDao {
      * @param imageInfo
      * @return
      */
-    def updateStatus(long listId, Map imageInfo) {
-        updateStatus("list_${listId}", imageInfo)
-    }
-
     @Override
     def updateStatus(String tablename, Map imageInfo) {
         db.execute(
                 "update $tablename set counterStatus = ${imageInfo.counterStatus} where id = ${imageInfo.id}".toString())
-    }
-
-    def updateImageName(long listId, long id, String imageName) {
-        updateImageName("list_${listId}", id, imageName)
     }
 
     @Override
@@ -91,26 +78,22 @@ class ListDataDao implements DataDao {
     }
 
     /**
-     * @param listId リストのID
-     * @param id リストテーブルのID
-     * @return 件数を返す
+     * @param id テーブルのID
      */
-    def find(long listId, long id) {
-        return db.firstRow("""select count(*) from list_${listId} where id = $id""".toString()).get("count(*)")
+    def find(long id) {
+        return db.firstRow("""select count(*) from timeline where id = $id""".toString()).get("count(*)")
+    }
+
+    def countAll() {
+        return db.firstRow("""select count(*) from timeline""".toString()).get("count(*)")
     }
 
     def findTwitterUrl(String imageName) {
 
-        def listMstDao = new ListMstDao(db)
-        List<GroovyRowResult> results = null
-        def allList = listMstDao.getListAll()
-        for (def list : allList) {
-            long listId = list.get("listId")
-            results = db.rows(
-                    """select screenName, statusId from list_${listId} where imageName = '$imageName'""".toString())
-            if (results != null && results.size() > 0) {
-                return results
-            }
+        List<GroovyRowResult> results = db.rows(
+                """select screenName, statusId from timeline where imageName = '$imageName'""".toString())
+        if (results != null && results.size() > 0) {
+            return results
         }
         results
     }
@@ -120,6 +103,6 @@ class ListDataDao implements DataDao {
     }
 
     def drop(long listId) {
-        db.execute("""drop table list_${listId}""".toString())
+        db.execute("""drop table timeline""".toString())
     }
 }

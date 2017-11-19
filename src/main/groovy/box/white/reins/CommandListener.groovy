@@ -1,11 +1,12 @@
 package box.white.reins
 
+import box.white.reins.dao.ListDataDao
+import box.white.reins.dao.TimelineDao
+import box.white.reins.util.StringUtil
+import box.white.reins.util.WebUtil
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
-import box.white.reins.dao.ListDataDao
-import box.white.reins.util.StringUtil
-import box.white.reins.util.WebUtil
 
 /**
  * reinsコマンドを処理するクラス。<br>
@@ -35,6 +36,7 @@ class CommandListener extends ManagedThread {
 
     Sql db = null
     ListDataDao listDataDao = null
+    TimelineDao timelineDao = null
     BufferedReader br = null
 
     /**
@@ -53,6 +55,7 @@ class CommandListener extends ManagedThread {
     void preProcess() {
         db = Sql.newInstance(ReinsConstants.JDBC_MAP)
         listDataDao = new ListDataDao(db)
+        timelineDao = new TimelineDao(db)
         br = new BufferedReader(new InputStreamReader(System.in))
     }
 
@@ -64,7 +67,7 @@ class CommandListener extends ManagedThread {
             if (br.ready()) {
                 command = br.readLine()
             }
-            sleep(100);
+            sleep(100)
         }
 
         if (StringUtil.isBlank(command)) {
@@ -100,7 +103,11 @@ class CommandListener extends ManagedThread {
                 imageUrls.each { WebUtil.viewUrlPage(it) }
             }
             // コンソール出力
-            imageUrls.each { println(it) }
+            if (imageUrls) {
+                imageUrls.each { println(it) }
+            } else {
+                println("Not found.")
+            }
         } catch (e) {
             log.error(e)
         }
@@ -117,7 +124,9 @@ class CommandListener extends ManagedThread {
 
         Set<String> urlSet = new HashSet<>()
         List<GroovyRowResult> results = listDataDao.findTwitterUrl(imageName)
-
+        if (!results) {
+            results = timelineDao.findTwitterUrl(imageName)
+        }
         for (def result : results) {
             urlSet.add(WebUtil.getTwitterUrl(result.get("screenName"), result.get("statusId")))
         }

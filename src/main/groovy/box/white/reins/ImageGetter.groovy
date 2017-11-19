@@ -1,11 +1,13 @@
 package box.white.reins
 
-import groovy.sql.Sql
-import groovy.util.logging.Slf4j
+import box.white.reins.dao.DataDao
 import box.white.reins.dao.ListDataDao
 import box.white.reins.dao.ListMstDao
+import box.white.reins.dao.TimelineDao
 import box.white.reins.util.StringUtil
 import box.white.reins.util.WebUtil
+import groovy.sql.Sql
+import groovy.util.logging.Slf4j
 
 /**
  * DB内のデータから画像をダウンロードする。<br>
@@ -25,6 +27,8 @@ class ImageGetter extends ManagedThread {
 
     /** リストデータの作成に利用するDAO */
     ListDataDao listDataDao = null
+
+    TimelineDao timelineDao = null
 
     Sql db = null
 
@@ -49,6 +53,7 @@ class ImageGetter extends ManagedThread {
         db = Sql.newInstance(ReinsConstants.JDBC_MAP)
         listMstDao = new ListMstDao(db)
         listDataDao = new ListDataDao(db)
+        timelineDao = new TimelineDao(db)
     }
 
     @Override
@@ -56,10 +61,9 @@ class ImageGetter extends ManagedThread {
         // リスト一覧の取得
         def listInfos = listMstDao.getListAll()
 
-        // リストが全然ないなら動きようがないですな
-        if (listInfos == null || listInfos.size() == 0) {
-            // リストができるまでしばらく待つ
-            log.info "reins is working to create list information. wait 20s until next search."
+        // データが全然ないなら、できるまで少し待つ
+        if (timelineDao.countAll() == 0 && !listInfos) {
+            log.info "reins is working to create image data. wait 20s until next search."
             sleep(20000)
             return
         }
@@ -67,69 +71,78 @@ class ImageGetter extends ManagedThread {
         def attributes = ["twitter", "gif"]        // TODO:取得対象
         attributes.each { attribute ->
 
+            // タイムラインテーブルからの取得
+            downloadImages(attribute, "タイムライン", "timeline", timelineDao)
+
+            // リストテーブルからの取得
             listInfos.collect {
                 [listId: it.get("listId"), listName: it.get("listName")]
             }.each { listInfo ->
 
                 log.info "listInfo:$listInfo"
-
-                int max_getimage = 200    // 1テーブルが1回の動作で取得する回数はMAXを定めておく
-                def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
-
-                if (imageInfos == null || imageInfos.size() == 0) {
-                    log.info "no image url : ${listInfo.listName}"
-                } else {
-                    imageInfos.collect {
-                        [
-                                id           : it.get("id"),
-                                imageUrl     : it.get("imageUrl"),
-                                screenName   : it.get("screenName"),
-                                counterStatus: it.get("counterStatus"),
-                                statusId     : it.get("statusId"),
-                                tweetDate    : it.get("tweetDate"),
-                                retweetUser  : it.get("retweetUser")
-                        ]
-                    }.each { imageInfo ->
-
-                        // ユーザー単位の画像フォルダを作成する
-                        File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
-                        File filepath = createFileName(dirpath, imageInfo)
-
-                        if (imageInfo.attribute != "pixiv") {
-                            // 拡張子が画像ファイルのものを対象にする
-                            if (filepath != null) {
-
-                                log.info "imageInfo:$imageInfo"
-
-                                // ファイル名をDBに保存
-                                listDataDao.updateImageName(
-                                        listInfo.listId, imageInfo.id, filepath.getName())
-                                try {
-                                    // Retweetをダウンロードするかの判定
-                                    if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
-                                        WebUtil.download(imageInfo.imageUrl, filepath)
-                                    } else if (StringUtil.isBlank(imageInfo.retweetUser)) {
-                                        WebUtil.download(imageInfo.imageUrl, filepath)
-                                    }
-                                    // 終了を設定
-                                    imageInfo.counterStatus = -1
-                                } catch (e) {
-                                    // 施行回数を上げる
-                                    imageInfo.counterStatus += 1
-                                    log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
-                                    log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
-                                }
-                            }
-                        }
-                        listDataDao.updateStatus(listInfo.listId, imageInfo)
-                    }
-                }
+                String tablename = "list_${listInfo.listId}"
+                downloadImages(attribute, (String)listInfo.listName, tablename, listDataDao)
             }
         }
 
         // 1周したら結構待つ
         log.info "image download completed. wait ${WAIT_TIME / 2}s until next download process."
         sleep(WAIT_TIME * 500)
+    }
+
+    protected void downloadImages(String attribute, String dirname, String tablename, DataDao dao) {
+
+        int max_getimage = 200    // 1テーブルが1回の動作で取得する回数はMAXを定めておく
+        def imageInfos = dao.getImageInfo(tablename, attribute, max_getimage)
+
+        if (imageInfos == null || imageInfos.size() == 0) {
+            log.info "no image url : $tablename"
+        } else {
+            imageInfos.collect {
+                [
+                        id           : it.get("id"),
+                        imageUrl     : it.get("imageUrl"),
+                        screenName   : it.get("screenName"),
+                        counterStatus: it.get("counterStatus"),
+                        statusId     : it.get("statusId"),
+                        tweetDate    : it.get("tweetDate"),
+                        retweetUser  : it.get("retweetUser")
+                ]
+            }.each { imageInfo ->
+
+                // ユーザー単位の画像フォルダを作成する
+                File dirpath = mkdir(dirname, imageInfo.screenName, imageInfo.retweetUser)
+                File filepath = createFileName(dirpath, imageInfo)
+
+                if (imageInfo.attribute != "pixiv") {   // TODO:imageInfoにattributeないぞ？
+                    // 拡張子が画像ファイルのものを対象にする
+                    if (filepath != null) {
+
+                        log.info "imageInfo:$imageInfo"
+
+                        // ファイル名をDBに保存
+                        listDataDao.updateImageName(tablename, (Long)imageInfo.id, filepath.getName())
+                        try {
+                            // Retweetをダウンロードするかの判定
+                            if (imageInfo.retweetUser && config.reins.retweet.target) {
+                                WebUtil.download(imageInfo.imageUrl, filepath)
+                            } else if (StringUtil.isBlank(imageInfo.retweetUser)) {
+                                WebUtil.download(imageInfo.imageUrl, filepath)
+                            }
+                            // 終了を設定
+                            imageInfo.counterStatus = -1
+                        } catch (e) {
+                            // 施行回数を上げる
+                            imageInfo.counterStatus += 1
+                            log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
+                            log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
+                        }
+                    }
+                }
+                listDataDao.updateStatus(tablename, imageInfo)
+            }
+        }
+
     }
 
     @Override

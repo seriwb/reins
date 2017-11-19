@@ -31,9 +31,9 @@ Twitterから情報取得時にネットワークエラーが発生した場合�
 2. 必要に応じてconf/config.txtの値を調整
 3. 画像取得対象のリストを選びたい場合は、conf/allow.txtにリスト名を追加
 4. 画像取得対象外のリストを設定したい場合は、conf/deny.txtにリスト名を追加
-5. コンソールからreins-0.3.2.jarがある場所まで移動し、以下のコマンドを実行
+5. コンソールからreins-0.3.3.jarがある場所まで移動し、以下のコマンドを実行
 ```
-java -jar reins-0.3.2.jar
+java -jar reins-0.3.3.jar
 ```
 
 
@@ -48,6 +48,8 @@ Reinsの動作設定は```conf/config.txt```を編集することで変更が可
 - 繰り返しのWait間隔ベース（ms）：reins.loop.waittime
 - Retweetの取得：reins.retweet.target
 - Retweetのディレクトリを別ける：reins.retweet.separate
+- タイムラインの取得：reins.timeline.target
+- リストの取得：reins.list.target
 
 
 ### 設定項目についての説明
@@ -67,6 +69,12 @@ reins.retweet.target = true
 
 // Retweetのディレクトリを分離（分離する：true/分離しない：false）
 reins.retweet.separate = true
+
+// タイムラインの画像取得（取得する：true/取得しない：false）
+reins.timeline.target = true
+
+// リストの画像取得（取得する：true/取得しない：false）
+reins.list.target = true
 ```
 
 #### 1. reins.image.dir
@@ -103,6 +111,19 @@ trueでリツイートを取得し、falseで取得しなくなります。
 その配下にリツイートの画像がユーザ毎に保存されます。
 - falseにした場合は、リツイートを区別せずにリストのディレクトリ配下にユーザ毎に画像が保存されます。
 
+
+#### 6. reins.timeline.target
+
+認証ユーザのタイムラインから画像を取得するかどうかを選択できます。  
+trueでタイムラインから取得し、falseで取得しなくなります。
+
+
+#### 7. reins.list.target
+
+認証ユーザが持つ各リストから画像を取得するかどうかを選択できます。  
+trueで各リストから取得し、falseで取得しなくなります。
+
+画像の取得先がタイムラインだけでいいような場合は、本オプションをfalseに設定してください。
 
 
 ## reinsコマンド
