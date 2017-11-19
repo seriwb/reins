@@ -12,3 +12,9 @@ reins.retweet.target = true
 
 // Retweetのディレクトリを分離（分離する：true/分離しない：false）
 reins.retweet.separate = true
+
+// タイムラインの画像取得（取得する：true/取得しない：false）
+reins.timeline.target = true
+
+// リストの画像取得（取得する：true/取得しない：false）
+reins.list.target = true

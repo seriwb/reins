@@ -9,7 +9,7 @@
 /log
 /tmp
 key.data
-/twitter4j.properties
+twitter4j.properties*
 /.README.md.html
 /.idea
 /classes

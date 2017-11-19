@@ -1,6 +1,6 @@
 package box.white.reins
 
-abstract class ReinsConstants {
+final class ReinsConstants {
 
     /**
      * JDBCプロパティ
@@ -11,4 +11,9 @@ abstract class ReinsConstants {
             password: '',
             driver  : 'org.h2.Driver'
     ]
+
+    /**
+     * 保持しているタイムラインのsince_idを取得するキー値
+     */
+    static final String TIMELINE_SINCEID = "timeline_sinceid"
 }

@@ -6,6 +6,7 @@ import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import box.white.reins.dao.ListMstDao
 import box.white.reins.dao.ReinsMstDao
+import box.white.reins.dao.TimelineDao
 
 /**
  * 初期化用クラス<br>
@@ -45,6 +46,13 @@ class BootStrap {
             listMstDao.create()
         } catch (e) {
             log.info "list_mst already exist."
+        }
+
+        def timelineDao = new TimelineDao(db)
+        try {
+            timelineDao.create()
+        } catch (e) {
+            log.info "timeline already exist."
         }
 
         db.close()
