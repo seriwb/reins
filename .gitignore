@@ -11,7 +11,8 @@
 key.data
 /twitter4j.properties
 /.README.md.html
-.idea
-classes
+/.idea
+/classes
+/out
 .DS_Store
 /test-classes/

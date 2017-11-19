@@ -11,24 +11,24 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 version = '0.3.2'
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	compile ('org.codehaus.groovy:groovy-all:2.4.11') {transitive = false}
-	compile ('org.twitter4j:twitter4j-core:[4.0,)') {transitive = false}
-	compile ('org.codehaus.groovy.modules.http-builder:http-builder:0.7.1') {transitive = false}
+    compile('org.codehaus.groovy:groovy-all:2.4.11') { transitive = false }
+    compile('org.twitter4j:twitter4j-core:[4.0,)') { transitive = false }
+    compile('org.codehaus.groovy.modules.http-builder:http-builder:0.7.1') { transitive = false }
 //	compile 'org.hibernate:hibernate-gradle-plugin:4.3.6.Final'
-	compile ('org.apache.logging.log4j:log4j-core:2.8.1') {transitive = false}
-	compile ('org.apache.logging.log4j:log4j-api:2.8.1') {transitive = false}
-	compile ('org.apache.logging.log4j:log4j-slf4j-impl:2.8.1') {transitive = false}
-	compile ('org.slf4j:slf4j-api:1.7.24') {transitive = false}
-	compile ('com.fasterxml.jackson.core:jackson-core:[2.4,)') {transitive = false}
-	compile ('com.fasterxml.jackson.core:jackson-databind:[2.4,)') {transitive = false}
-	compile ('com.fasterxml.jackson.core:jackson-annotations:[2.4,)') {transitive = false}
-	compile ('com.h2database:h2:1.4.180') {transitive = false}
+    compile('org.apache.logging.log4j:log4j-core:2.8.1') { transitive = false }
+    compile('org.apache.logging.log4j:log4j-api:2.8.1') { transitive = false }
+    compile('org.apache.logging.log4j:log4j-slf4j-impl:2.8.1') { transitive = false }
+    compile('org.slf4j:slf4j-api:1.7.24') { transitive = false }
+    compile('com.fasterxml.jackson.core:jackson-core:[2.4,)') { transitive = false }
+    compile('com.fasterxml.jackson.core:jackson-databind:[2.4,)') { transitive = false }
+    compile('com.fasterxml.jackson.core:jackson-annotations:[2.4,)') { transitive = false }
+    compile('com.h2database:h2:1.4.180') { transitive = false }
 
-	testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
     testCompile group: 'cglib', name: 'cglib-nodep', version: '3.2.5'
     testCompile group: 'org.objenesis', name: 'objenesis', version: '2.5.1'
 }
@@ -39,30 +39,30 @@ tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding
 
 
 compileJava {
-	
-	// twitter4j.propertiesを使って使用するconsumer keysを設定する
-	def prop = new Properties()
-	prop.load(new FileInputStream("$projectDir/twitter4j.properties"))
-	def config = new ConfigSlurper().parse(prop)
-	
-	// バイトデータでキー情報を保持
-	Map <String, String> keymap = new HashMap<>()
-	keymap.put("consumerKey", config.oauth.consumerKey)
-	keymap.put("consumerSecret", config.oauth.consumerSecret)
 
-	File keydataPath = new File("$projectDir/src/main/resources/box/white/reins")
-	if (!keydataPath.exists()) {
-		keydataPath.mkdirs()
-	}
-	File keydata = new File(keydataPath, "key.data")
-	if (!keydata.exists()) {
-		keydata.createNewFile()
-	}
+    // twitter4j.propertiesを使って使用するconsumer keysを設定する
+    def prop = new Properties()
+    prop.load(new FileInputStream("$projectDir/twitter4j.properties"))
+    def config = new ConfigSlurper().parse(prop)
 
-	ByteArrayOutputStream baos = new ByteArrayOutputStream()
-	ObjectOutputStream oos = new ObjectOutputStream(baos)
-	oos.writeObject(keymap)
-	keydata.write(baos.toByteArray().encodeBase64().toString())
+    // バイトデータでキー情報を保持
+    Map<String, String> keymap = new HashMap<>()
+    keymap.put("consumerKey", config.oauth.consumerKey)
+    keymap.put("consumerSecret", config.oauth.consumerSecret)
+
+    File keydataPath = new File("$projectDir/src/main/resources/box/white/reins")
+    if (!keydataPath.exists()) {
+        keydataPath.mkdirs()
+    }
+    File keydata = new File(keydataPath, "key.data")
+    if (!keydata.exists()) {
+        keydata.createNewFile()
+    }
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream()
+    ObjectOutputStream oos = new ObjectOutputStream(baos)
+    oos.writeObject(keymap)
+    keydata.write(baos.toByteArray().encodeBase64().toString())
 }
 
 //jar {
@@ -85,14 +85,14 @@ compileJava {
 
 // fat jar用の設定
 jar {
-	from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-	manifest {
-		attributes (
-			'Implementation-Title': 'reins',
-			'Implementation-Version': version,
-			'Main-Class' : 'box.white.reins.Main'
-		)
-	}
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    manifest {
+        attributes(
+                'Implementation-Title': 'reins',
+                'Implementation-Version': version,
+                'Main-Class': 'box.white.reins.Main'
+        )
+    }
 }
 
 //run {
@@ -102,10 +102,10 @@ jar {
 //mainClassName = 'box.white.reins.Main'
 
 jacocoTestReport {
-	reports {
-		xml.enabled true // coveralls plugin depends on xml format report
-		html.enabled true
-		html.destination(new File("${buildDir}/jacocoHtml"))
-	}
+    reports {
+        xml.enabled true // coveralls plugin depends on xml format report
+        html.enabled true
+        html.destination(new File("${buildDir}/jacocoHtml"))
+    }
 }
 jacocoTestReport.dependsOn test

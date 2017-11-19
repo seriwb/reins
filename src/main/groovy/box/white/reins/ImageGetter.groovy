@@ -17,201 +17,198 @@ import box.white.reins.util.WebUtil
 @Slf4j
 class ImageGetter extends ManagedThread {
 
-	def config = null			// 設定値
-	String dirpath = null		// フォルダ作成先パス
+    def config = null            // 設定値
+    String dirpath = null        // フォルダ作成先パス
 
-	/** リストマスタ参照用のDAO */
-	ListMstDao listMstDao = null
+    /** リストマスタ参照用のDAO */
+    ListMstDao listMstDao = null
 
-	/** リストデータの作成に利用するDAO */
-	ListDataDao listDataDao = null
+    /** リストデータの作成に利用するDAO */
+    ListDataDao listDataDao = null
 
-	Sql db = null
-	
-	/** sleepのベース時間：リスト毎は短め、チェック後は長め */
-	final int WAIT_TIME
+    Sql db = null
 
-	ImageGetter(config) {
-		this.config = config
+    /** sleepのベース時間：リスト毎は短め、チェック後は長め */
+    final int WAIT_TIME
 
-		dirpath = this.config.reins.image.dir
-		if (dirpath == null || dirpath == "") {
-			dirpath = "./dir"
-		}
-		
-		WAIT_TIME = config.reins.loop.waittime
-	}
+    ImageGetter(config) {
+        this.config = config
 
-	final def IMAGE_SET = ["png", "jpg", "bmp", "jpeg", "gif"]
+        dirpath = this.config.reins.image.dir
+        if (dirpath == null || dirpath == "") {
+            dirpath = "./dir"
+        }
 
-	@Override
-	void preProcess() {
-		db = Sql.newInstance(ReinsConstants.JDBC_MAP)
-		listMstDao = new ListMstDao(db)
-		listDataDao = new ListDataDao(db)
-	}
-	
-	@Override
-	void mainProcess() {
-		// リスト一覧の取得
-		def listInfos = listMstDao.getListAll()
+        WAIT_TIME = config.reins.loop.waittime
+    }
 
-		// リストが全然ないなら動きようがないですな
-		if (listInfos == null || listInfos.size() == 0) {
-			// リストができるまでしばらく待つ
-			log.info "reins is working to create list information. wait 20s until next search."
-			sleep(20000)
-			return
-		}
+    final def IMAGE_SET = ["png", "jpg", "bmp", "jpeg", "gif"]
 
-		def attributes = ["twitter", "gif"]		// TODO:取得対象
-		attributes.each { attribute ->
+    @Override
+    void preProcess() {
+        db = Sql.newInstance(ReinsConstants.JDBC_MAP)
+        listMstDao = new ListMstDao(db)
+        listDataDao = new ListDataDao(db)
+    }
 
-			listInfos.collect {
-				[ listId : it.get("listId"), listName : it.get("listName") ]
-			}.each { listInfo ->
+    @Override
+    void mainProcess() {
+        // リスト一覧の取得
+        def listInfos = listMstDao.getListAll()
 
-				log.info "listInfo:$listInfo"
+        // リストが全然ないなら動きようがないですな
+        if (listInfos == null || listInfos.size() == 0) {
+            // リストができるまでしばらく待つ
+            log.info "reins is working to create list information. wait 20s until next search."
+            sleep(20000)
+            return
+        }
 
-				int max_getimage = 200	// 1テーブルが1回の動作で取得する回数はMAXを定めておく
-				def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
+        def attributes = ["twitter", "gif"]        // TODO:取得対象
+        attributes.each { attribute ->
 
-				if (imageInfos == null || imageInfos.size() == 0) {
-					log.info "no image url : ${listInfo.listName}"
-				}
-				else {
-					imageInfos.collect {
-						[
-							id : it.get("id"),
-							imageUrl : it.get("imageUrl"),
-							screenName : it.get("screenName"),
-							counterStatus : it.get("counterStatus"),
-							statusId : it.get("statusId"),
-							tweetDate : it.get("tweetDate"),
-							retweetUser : it.get("retweetUser")
-						]
-					}.each { imageInfo ->
+            listInfos.collect {
+                [listId: it.get("listId"), listName: it.get("listName")]
+            }.each { listInfo ->
 
-						// ユーザー単位の画像フォルダを作成する
-						File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
-						File filepath = createFileName(dirpath, imageInfo)
+                log.info "listInfo:$listInfo"
 
-						if (imageInfo.attribute != "pixiv") {
-							// 拡張子が画像ファイルのものを対象にする
-							if (filepath != null) {
+                int max_getimage = 200    // 1テーブルが1回の動作で取得する回数はMAXを定めておく
+                def imageInfos = listDataDao.getImageInfo(listInfo.listId, attribute, max_getimage)
 
-								log.info "imageInfo:$imageInfo"
+                if (imageInfos == null || imageInfos.size() == 0) {
+                    log.info "no image url : ${listInfo.listName}"
+                } else {
+                    imageInfos.collect {
+                        [
+                                id           : it.get("id"),
+                                imageUrl     : it.get("imageUrl"),
+                                screenName   : it.get("screenName"),
+                                counterStatus: it.get("counterStatus"),
+                                statusId     : it.get("statusId"),
+                                tweetDate    : it.get("tweetDate"),
+                                retweetUser  : it.get("retweetUser")
+                        ]
+                    }.each { imageInfo ->
 
-								// ファイル名をDBに保存
-								listDataDao.updateImageName(
-										listInfo.listId, imageInfo.id, filepath.getName())
-								try {
-									// Retweetをダウンロードするかの判定
-									if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
-										WebUtil.download(imageInfo.imageUrl, filepath)
-									} else if (StringUtil.isBlank(imageInfo.retweetUser)) {
-										WebUtil.download(imageInfo.imageUrl, filepath)
-									}
-									// 終了を設定
-									imageInfo.counterStatus = -1
-								} catch (e) {
-									// 施行回数を上げる
-									imageInfo.counterStatus += 1
-									log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
-									log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
-								}
-							}
-						}
-						listDataDao.updateStatus(listInfo.listId, imageInfo)
-					}
-				}
-			}
-		}
+                        // ユーザー単位の画像フォルダを作成する
+                        File dirpath = mkdir(listInfo.listName, imageInfo.screenName, imageInfo.retweetUser)
+                        File filepath = createFileName(dirpath, imageInfo)
 
-		// 1周したら結構待つ
-		log.info "image download completed. wait ${WAIT_TIME / 2}s until next download process."
-		sleep(WAIT_TIME * 500)
-	}
+                        if (imageInfo.attribute != "pixiv") {
+                            // 拡張子が画像ファイルのものを対象にする
+                            if (filepath != null) {
 
-	@Override
-	void postProcess() {
-		listDataDao = null
-		listMstDao = null
-		db = null
-	}
+                                log.info "imageInfo:$imageInfo"
 
-	/**
-	 * 画像の保存先ディレクトリを作成する
-	 *
-	 * @param list_name リスト名
-	 * @param screen_name Twitterユーザ名
-	 * @param retweet_user Retweetしたユーザ名
-	 * @return ディレクトリパス
-	 */
-	File mkdir(String list_name, String screen_name, String retweet_user) {
+                                // ファイル名をDBに保存
+                                listDataDao.updateImageName(
+                                        listInfo.listId, imageInfo.id, filepath.getName())
+                                try {
+                                    // Retweetをダウンロードするかの判定
+                                    if (!StringUtil.isBlank(imageInfo.retweetUser) && config.reins.retweet.target) {
+                                        WebUtil.download(imageInfo.imageUrl, filepath)
+                                    } else if (StringUtil.isBlank(imageInfo.retweetUser)) {
+                                        WebUtil.download(imageInfo.imageUrl, filepath)
+                                    }
+                                    // 終了を設定
+                                    imageInfo.counterStatus = -1
+                                } catch (e) {
+                                    // 施行回数を上げる
+                                    imageInfo.counterStatus += 1
+                                    log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
+                                    log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
+                                }
+                            }
+                        }
+                        listDataDao.updateStatus(listInfo.listId, imageInfo)
+                    }
+                }
+            }
+        }
 
-		String targetDirPath = null
-		File targetDir = null
+        // 1周したら結構待つ
+        log.info "image download completed. wait ${WAIT_TIME / 2}s until next download process."
+        sleep(WAIT_TIME * 500)
+    }
 
-		if (list_name == null || list_name.empty) {
-			// Retweetの場合にディレクトリを分けるかどうかを判定
-			if (!config.reins.retweet.separate || retweet_user == null || retweet_user.empty) {
-				targetDirPath = "${dirpath}/${screen_name}"
-			}
-			else {
-				targetDirPath = "${dirpath}/${retweet_user}/rt/${screen_name}"
-			}
-		} else {
-			if (!config.reins.retweet.separate || retweet_user == null || retweet_user.empty) {
-				targetDirPath = "${dirpath}/${list_name}/${screen_name}"
-			}
-			else {
-				targetDirPath = "${dirpath}/${list_name}/${retweet_user}/rt/${screen_name}"
-			}
-		}
+    @Override
+    void postProcess() {
+        listDataDao = null
+        listMstDao = null
+        db = null
+    }
 
-		targetDir = new File(targetDirPath)
-		if (!targetDir.exists()) {
-			// println targetDir.toURI().toString()
-			targetDir.mkdirs()
-		}
-		targetDir
-	}
+    /**
+     * 画像の保存先ディレクトリを作成する
+     *
+     * @param list_name リスト名
+     * @param screen_name Twitterユーザ名
+     * @param retweet_user Retweetしたユーザ名
+     * @return ディレクトリパス
+     */
+    File mkdir(String list_name, String screen_name, String retweet_user) {
 
-	/**
-	 * Tweet情報から画像ファイル名を作成<br>
-	 * ファイル名は「yyyymmdd-HHmmss(-2)_screenName.identifer」<br>
-	 * 括弧部分は同一ツイートに複数の画像があった場合に利用する。<br>
-	 *
-	 * 例：20140726-002935-2_screen_name.jpg
-	 *
-	 * @return 画像ファイル名
-	 */
-	File createFileName(File dirpath, Map imageInfo) {
+        String targetDirPath = null
+        File targetDir = null
 
-		String datestr = imageInfo.tweetDate.format("yyyyMMdd-HHmmss")
-		String[] strings = (imageInfo.imageUrl).split('\\.')
-		String identifer = strings[strings.length - 1]
-		String namestr = "_${imageInfo.screenName}.$identifer"
+        if (list_name == null || list_name.empty) {
+            // Retweetの場合にディレクトリを分けるかどうかを判定
+            if (!config.reins.retweet.separate || retweet_user == null || retweet_user.empty) {
+                targetDirPath = "${dirpath}/${screen_name}"
+            } else {
+                targetDirPath = "${dirpath}/${retweet_user}/rt/${screen_name}"
+            }
+        } else {
+            if (!config.reins.retweet.separate || retweet_user == null || retweet_user.empty) {
+                targetDirPath = "${dirpath}/${list_name}/${screen_name}"
+            } else {
+                targetDirPath = "${dirpath}/${list_name}/${retweet_user}/rt/${screen_name}"
+            }
+        }
 
-		if (!IMAGE_SET.contains(identifer) || identifer.length() > 5) {
-			return null
-		}
-		File filepath = new File(dirpath, datestr.concat(namestr))
+        targetDir = new File(targetDirPath)
+        if (!targetDir.exists()) {
+            // println targetDir.toURI().toString()
+            targetDir.mkdirs()
+        }
+        targetDir
+    }
 
-		// 重複していたら_9までファイル名を別のものを作成する（TODO:それ以上は無視）
-		if (filepath.exists()) {
-			for (int i=2; i<10; i++) {
-				String tempname = "-${i}_${imageInfo.screenName}.$identifer"
+    /**
+     * Tweet情報から画像ファイル名を作成<br>
+     * ファイル名は「yyyymmdd-HHmmss(-2)_screenName.identifer」<br>
+     * 括弧部分は同一ツイートに複数の画像があった場合に利用する。<br>
+     *
+     * 例：20140726-002935-2_screen_name.jpg
+     *
+     * @return 画像ファイル名
+     */
+    File createFileName(File dirpath, Map imageInfo) {
 
-				File temppath = new File(dirpath, datestr.concat(tempname))
-				if (!temppath.exists()) {
-					filepath = temppath
-					break
-				}
-			}
-		}
+        String datestr = imageInfo.tweetDate.format("yyyyMMdd-HHmmss")
+        String[] strings = (imageInfo.imageUrl).split('\\.')
+        String identifer = strings[strings.length - 1]
+        String namestr = "_${imageInfo.screenName}.$identifer"
 
-		filepath
-	}
+        if (!IMAGE_SET.contains(identifer) || identifer.length() > 5) {
+            return null
+        }
+        File filepath = new File(dirpath, datestr.concat(namestr))
+
+        // 重複していたら_9までファイル名を別のものを作成する（TODO:それ以上は無視）
+        if (filepath.exists()) {
+            for (int i = 2; i < 10; i++) {
+                String tempname = "-${i}_${imageInfo.screenName}.$identifer"
+
+                File temppath = new File(dirpath, datestr.concat(tempname))
+                if (!temppath.exists()) {
+                    filepath = temppath
+                    break
+                }
+            }
+        }
+
+        filepath
+    }
 }

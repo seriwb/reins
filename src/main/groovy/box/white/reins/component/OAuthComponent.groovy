@@ -1,6 +1,5 @@
 package box.white.reins.component
 
-import static box.white.reins.util.StringUtil.*
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import twitter4j.Twitter
@@ -71,7 +70,7 @@ class OAuthComponent {
 
     /**
      * アプリケーションが保持しているアクセストークンを設定する
-     * 
+     *
      * @param twitter アクセストークンを設定するTwitterインスタンス
      */
     void setOAuthAccessToken(Twitter twitter) {
@@ -108,16 +107,14 @@ class OAuthComponent {
             try {
                 if (pin.length() > 0) {
                     accessToken = twitter.getOAuthAccessToken(requestToken, pin)
-                }
-                else {
+                } else {
                     accessToken = twitter.getOAuthAccessToken()
                 }
             }
             catch (TwitterException te) {
                 if (te.getStatusCode() == 401) {
                     println "Unable to get the access token."
-                }
-                else {
+                } else {
                     te.printStackTrace()
                     log.error "OAuth Error:0001"
                     throw new RuntimeException("OAuth authentication failed. please retry it.")
@@ -165,10 +162,9 @@ class OAuthComponent {
      */
     def checkKeyAndInsertUpdate(dao, String key, String value) {
 
-        if(dao.findKey(key)) {
+        if (dao.findKey(key)) {
             dao.updateValue(key, value)
-        }
-        else {
+        } else {
             dao.insert(key, value)
         }
     }

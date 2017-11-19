@@ -2,7 +2,6 @@ package box.white.rains.util;
 
 import spock.lang.Specification
 import box.white.reins.util.WebUtil
-import java.nio.channels.Channels
 
 class WebUtilSpec extends Specification {
 
