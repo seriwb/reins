@@ -24,9 +24,10 @@ class CommandListener extends ManagedThread {
     /** システム設定値 */
     def config = null
 
-    /** コマンドクラス */
+    /** コマンド一覧 */
     final Set<String> COMMAND_SETS = [
             "logout",
+            "init",
             "url",
             "refresh",
             "quit",
@@ -57,6 +58,8 @@ class CommandListener extends ManagedThread {
         listDataDao = new ListDataDao(db)
         timelineDao = new TimelineDao(db)
         br = new BufferedReader(new InputStreamReader(System.in))
+
+        println("コマンド入力の受付を開始します。")
     }
 
     @Override
