@@ -8,7 +8,7 @@ apply plugin: 'eclipse'
 //apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
-version = '0.3.3'
+version = '0.3.4'
 
 repositories {
     mavenCentral()

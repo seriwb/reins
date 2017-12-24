@@ -134,6 +134,7 @@ class TwitterWatcher extends ManagedThread {
         cb.setDebugEnabled(true)
                 .setOAuthConsumerKey(consumerKey)
                 .setOAuthConsumerSecret(consumerSecret)
+                .setTweetModeExtended(true)     // 140文字制限拡張
         TwitterFactory factory = new TwitterFactory(cb.build())
         twitter = factory.getInstance()
 
@@ -176,16 +177,45 @@ class TwitterWatcher extends ManagedThread {
                 break
             }
 
-            for (Status status : statuses) {
-                registerImageUrl(status)
+            db.withTransaction {
+                for (Status status : statuses) {
+                    registerImageUrl(status)
+                }
+
+                if (i == 1) {
+                    // since_idの保持
+                    if (reinsMstDao.findKey(ReinsConstants.TIMELINE_SINCEID)) {
+                        reinsMstDao.updateValue(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+                    } else {
+                        reinsMstDao.insert(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+                    }
+                }
+            }
+        }
+    }
+
+    protected def checkHomeTimelineTweet(Paging paging) {
+        // 最大(TWEET_MAX_COUNT × PAGING_MAX_COUNT)のツイートを取得し、チェックする
+        for (int i = 1; i <= PAGING_MAX_COUNT; i++) {
+            paging.page = i
+            ResponseList<Status> statuses = twitter.getHomeTimeline(paging)     // getUserTimelineでユーザのみのが取れる
+
+            if (statuses == null || statuses.size() == 0) {
+                break
             }
 
-            if (i == 1) {
-                // since_idの保持
-                if (reinsMstDao.findKey(ReinsConstants.TIMELINE_SINCEID)) {
-                    reinsMstDao.updateValue(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
-                } else {
-                    reinsMstDao.insert(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+            db.withTransaction {
+                for (Status status : statuses) {
+                    registerImageUrl(status)
+                }
+
+                if (i == 1) {
+                    // since_idの保持
+                    if (reinsMstDao.findKey(ReinsConstants.TIMELINE_SINCEID)) {
+                        reinsMstDao.updateValue(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+                    } else {
+                        reinsMstDao.insert(ReinsConstants.TIMELINE_SINCEID, statuses.get(0).getId().toString())
+                    }
                 }
             }
         }
@@ -288,13 +318,15 @@ class TwitterWatcher extends ManagedThread {
                 break
             }
 
-            for (Status status : statuses) {
-                registerImageUrl(listId, status)
-            }
+            db.withTransaction {
+                for (Status status : statuses) {
+                    registerImageUrl(listId, status)
+                }
 
-            if (i == 1) {
-                // since_idの保持
-                listMstDao.updateSinceId(listId, statuses.get(0).getId())
+                if (i == 1) {
+                    // since_idの保持
+                    listMstDao.updateSinceId(listId, statuses.get(0).getId())
+                }
             }
         }
 

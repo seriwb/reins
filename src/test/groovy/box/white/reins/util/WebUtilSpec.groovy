@@ -1,4 +1,4 @@
-package box.white.rains.util;
+package box.white.reins.util
 
 import spock.lang.Specification
 import box.white.reins.util.WebUtil
