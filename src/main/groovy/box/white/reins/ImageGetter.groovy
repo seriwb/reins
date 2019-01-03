@@ -9,6 +9,8 @@ import box.white.reins.util.WebUtil
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 
+import java.sql.SQLException
+
 /**
  * DB内のデータから画像をダウンロードする。<br>
  *
@@ -91,56 +93,59 @@ class ImageGetter extends ManagedThread {
     }
 
     protected void downloadImages(String attribute, String dirname, String tablename, DataDao dao) {
+        try {
+            int max_getimage = 200    // 1テーブルが1回の動作で取得する回数はMAXを定めておく
+            def imageInfos = dao.getImageInfo(tablename, attribute, max_getimage)
 
-        int max_getimage = 200    // 1テーブルが1回の動作で取得する回数はMAXを定めておく
-        def imageInfos = dao.getImageInfo(tablename, attribute, max_getimage)
+            if (imageInfos == null || imageInfos.size() == 0) {
+                log.info "no image url : $tablename"
+            } else {
+                imageInfos.collect {
+                    [
+                            id           : it.get("id"),
+                            imageUrl     : it.get("imageUrl"),
+                            screenName   : it.get("screenName"),
+                            counterStatus: it.get("counterStatus"),
+                            statusId     : it.get("statusId"),
+                            tweetDate    : it.get("tweetDate"),
+                            retweetUser  : it.get("retweetUser")
+                    ]
+                }.each { imageInfo ->
 
-        if (imageInfos == null || imageInfos.size() == 0) {
-            log.info "no image url : $tablename"
-        } else {
-            imageInfos.collect {
-                [
-                        id           : it.get("id"),
-                        imageUrl     : it.get("imageUrl"),
-                        screenName   : it.get("screenName"),
-                        counterStatus: it.get("counterStatus"),
-                        statusId     : it.get("statusId"),
-                        tweetDate    : it.get("tweetDate"),
-                        retweetUser  : it.get("retweetUser")
-                ]
-            }.each { imageInfo ->
+                    // ユーザー単位の画像フォルダを作成する
+                    File dirpath = mkdir(dirname, imageInfo.screenName, imageInfo.retweetUser)
+                    File filepath = createFileName(dirpath, imageInfo)
 
-                // ユーザー単位の画像フォルダを作成する
-                File dirpath = mkdir(dirname, imageInfo.screenName, imageInfo.retweetUser)
-                File filepath = createFileName(dirpath, imageInfo)
+                    if (attribute != "pixiv") { // TODO: pixivは非対応のため除外
+                        // 拡張子が画像ファイルのものを対象にする
+                        if (filepath != null) {
 
-                if (imageInfo.attribute != "pixiv") {   // TODO:imageInfoにattributeないぞ？
-                    // 拡張子が画像ファイルのものを対象にする
-                    if (filepath != null) {
+                            log.info "imageInfo:$imageInfo"
 
-                        log.info "imageInfo:$imageInfo"
-
-                        // ファイル名をDBに保存
-                        listDataDao.updateImageName(tablename, (Long)imageInfo.id, filepath.getName())
-                        try {
-                            // Retweetをダウンロードするかの判定
-                            if (imageInfo.retweetUser && config.reins.retweet.target) {
-                                WebUtil.download(imageInfo.imageUrl, filepath)
-                            } else if (StringUtil.isBlank(imageInfo.retweetUser)) {
-                                WebUtil.download(imageInfo.imageUrl, filepath)
+                            // ファイル名をDBに保存
+                            listDataDao.updateImageName(tablename, (Long)imageInfo.id, filepath.getName())
+                            try {
+                                // Retweetをダウンロードするかの判定
+                                if (imageInfo.retweetUser && config.reins.retweet.target) {
+                                    WebUtil.download(imageInfo.imageUrl, filepath)
+                                } else if (StringUtil.isBlank(imageInfo.retweetUser)) {
+                                    WebUtil.download(imageInfo.imageUrl, filepath)
+                                }
+                                // 終了を設定
+                                imageInfo.counterStatus = -1
+                            } catch (e) {
+                                // 施行回数を上げる
+                                imageInfo.counterStatus += 1
+                                log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
+                                log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
                             }
-                            // 終了を設定
-                            imageInfo.counterStatus = -1
-                        } catch (e) {
-                            // 施行回数を上げる
-                            imageInfo.counterStatus += 1
-                            log.warn "don't save [count ${imageInfo.counterStatus}] : ${imageInfo.imageUrl}"
-                            log.warn "->tweet url: " + WebUtil.getTwitterUrl(imageInfo.screenName, imageInfo.statusId)
                         }
                     }
+                    listDataDao.updateStatus(tablename, imageInfo)
                 }
-                listDataDao.updateStatus(tablename, imageInfo)
             }
+        } catch (SQLException sqlEx) {
+            log.error("sql execution error! directory name: $dirname, table name: $tablename", sqlEx)
         }
 
     }
