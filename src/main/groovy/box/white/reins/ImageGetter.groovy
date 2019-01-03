@@ -116,7 +116,7 @@ class ImageGetter extends ManagedThread {
                     File dirpath = mkdir(dirname, imageInfo.screenName, imageInfo.retweetUser)
                     File filepath = createFileName(dirpath, imageInfo)
 
-                    if (imageInfo.attribute != "pixiv") {   // TODO:imageInfoにattributeないぞ？
+                    if (attribute != "pixiv") { // TODO: pixivは非対応のため除外
                         // 拡張子が画像ファイルのものを対象にする
                         if (filepath != null) {
 
