@@ -12,6 +12,7 @@ key.data
 twitter4j.properties*
 /.README.md.html
 /.idea
+*.iml
 /classes
 /out
 .DS_Store
